@@ -5,7 +5,7 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 ## Tasks
 
 - [ ] Feature: Testing Infrastructure
-  - [ ] Set up Vitest with React Testing Library
+  - [x] Set up Vitest with React Testing Library (PR #1)
   - [ ] Add basic smoke tests for ThemeProvider
   - [ ] Configure test coverage reporting
 - [ ] Feature: Instance Management
