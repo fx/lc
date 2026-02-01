@@ -8,10 +8,10 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Set up Vitest with React Testing Library (PR #1)
   - [x] Add basic smoke tests for ThemeProvider (PR #2)
   - [x] Configure test coverage reporting (PR #3)
-- [ ] Feature: Instance Management
-  - [ ] Create instances store persisted to localStorage (id, name, endpoint URL)
-  - [ ] Build settings page with instance list, add/edit/delete forms
-  - [ ] Add instance selector dropdown in header, default to first instance
+- [x] Feature: Instance Management (PR #4)
+  - [x] Create instances store persisted to localStorage (id, name, endpoint URL)
+  - [x] Build settings page with instance list, add/edit/delete forms
+  - [x] Add instance selector dropdown in header, default to first instance
 - [ ] Feature: Image URL Control
   - [ ] Create image URL input on home page with instance selector
   - [ ] Fetch image, resize to display dimensions from GET /configuration, convert to RGBA
