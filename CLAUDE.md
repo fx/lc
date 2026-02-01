@@ -9,6 +9,7 @@ bun run dev        # Start dev server (Vite)
 bun run build      # Production build
 bun run check      # Lint + format check (Biome)
 bun run check:fix  # Lint + format with auto-fix
+bun run test       # Run Vitest tests
 ```
 
 ## Architecture
@@ -34,3 +35,7 @@ bun run check:fix  # Lint + format with auto-fix
 ## Project Context
 
 Web app to control LED matrix displays via the led-matrix-zmq-http-bridge API. See `docs/PROJECT.md` for task tracking and API reference.
+
+## PR Workflow
+
+**Before completing any PR**, invoke `/project-management` and mark relevant tasks as done in `docs/PROJECT.md`. Every PR must include PROJECT.md updates for any tasks it completes.

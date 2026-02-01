@@ -4,12 +4,10 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
-- [ ] Feature: Project Bootstrap
-  - [ ] Initialize TanStack Start project with Bun, Vite 7, React 19, TanStack Router/Query
-  - [ ] Configure Tailwind CSS 4 with shadcn/ui (new-york style, neutral base, zero border radius)
-  - [ ] Set up Biome (single quotes, no semicolons, 2-space indent)
-  - [ ] Use JetBrains Mono font for all text, cyan primary color theme
-  - [ ] Create root layout with dark mode ThemeProvider
+- [ ] Feature: Testing Infrastructure
+  - [ ] Set up Vitest with React Testing Library
+  - [ ] Add basic smoke tests for ThemeProvider
+  - [ ] Configure test coverage reporting
 - [ ] Feature: Instance Management
   - [ ] Create instances store persisted to localStorage (id, name, endpoint URL)
   - [ ] Build settings page with instance list, add/edit/delete forms
@@ -41,7 +39,15 @@ Base URL: `http://<host>:4200`
 
 ## Completed
 
-(none yet)
+- [x] Feature: Project Bootstrap (PR #1)
+  - [x] Initialize TanStack Start project with Bun, Vite 7, React 19, TanStack Router/Query
+  - [x] Configure Tailwind CSS 4 with shadcn/ui (new-york style, neutral base, zero border radius)
+  - [x] Set up Biome (single quotes, no semicolons, 2-space indent)
+  - [x] Use JetBrains Mono font for all text, cyan primary color theme
+  - [x] Create root layout with dark mode ThemeProvider
+- [x] Feature: CI/CD Pipeline (PR #1)
+  - [x] Add GitHub Actions workflow for Biome linting
+  - [x] Add GitHub Actions workflow for Vitest tests
 
 ## References
 
