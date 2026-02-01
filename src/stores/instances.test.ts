@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSelectedInstance, useInstancesStore } from './instances'
 
 // Mock localStorage
@@ -14,6 +14,11 @@ const localStorageMock = (() => {
     },
     clear: () => {
       store = {}
+    },
+    // Direct access for testing
+    _getStore: () => store,
+    _setStore: (newStore: Record<string, string>) => {
+      store = newStore
     },
   }
 })()
@@ -179,6 +184,182 @@ describe('useInstancesStore', () => {
       const selected = getSelectedInstance(state)
 
       expect(selected).toBeUndefined()
+    })
+  })
+
+  describe('URL validation', () => {
+    it('rejects javascript: URLs', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { addInstance } = useInstancesStore.getState()
+      addInstance('Malicious', 'javascript:alert(1)')
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(0)
+      consoleSpy.mockRestore()
+    })
+
+    it('rejects data: URLs', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { addInstance } = useInstancesStore.getState()
+      addInstance('Malicious', 'data:text/html,<script>alert(1)</script>')
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(0)
+      consoleSpy.mockRestore()
+    })
+
+    it('rejects file: URLs', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { addInstance } = useInstancesStore.getState()
+      addInstance('Malicious', 'file:///etc/passwd')
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(0)
+      consoleSpy.mockRestore()
+    })
+
+    it('rejects invalid URLs on update', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { addInstance, updateInstance } = useInstancesStore.getState()
+      addInstance('Valid', 'http://localhost:4200')
+
+      const { instances } = useInstancesStore.getState()
+      const id = instances[0].id
+
+      updateInstance(id, 'Updated', 'javascript:alert(1)')
+
+      const { instances: updated } = useInstancesStore.getState()
+      // URL should not have changed
+      expect(updated[0].endpointUrl).toBe('http://localhost:4200')
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('input sanitization', () => {
+    it('trims whitespace from name and URL', () => {
+      const { addInstance } = useInstancesStore.getState()
+      addInstance('  Padded Name  ', '  http://localhost:4200  ')
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances[0].name).toBe('Padded Name')
+      expect(instances[0].endpointUrl).toBe('http://localhost:4200')
+    })
+
+    it('removes control characters from name', () => {
+      const { addInstance } = useInstancesStore.getState()
+      addInstance('Name\x00With\x01Control', 'http://localhost:4200')
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances[0].name).toBe('NameWithControl')
+    })
+  })
+
+  describe('corrupted localStorage handling', () => {
+    it('recovers from invalid JSON in localStorage', () => {
+      // Set corrupted data before store initialization
+      localStorageMock.setItem('lc-instances', 'not valid json {{{')
+
+      // Force rehydration by getting the persist API
+      const persistApi = useInstancesStore.persist
+      persistApi.rehydrate()
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(0)
+    })
+
+    it('recovers from invalid structure in localStorage', () => {
+      // Set data with wrong structure
+      localStorageMock.setItem('lc-instances', JSON.stringify({ foo: 'bar' }))
+
+      const persistApi = useInstancesStore.persist
+      persistApi.rehydrate()
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(0)
+    })
+
+    it('filters out instances with invalid URLs on load', () => {
+      // Set data with a mix of valid and invalid instances
+      const data = {
+        state: {
+          instances: [
+            { id: '1', name: 'Valid', endpointUrl: 'http://localhost:4200' },
+            { id: '2', name: 'Invalid', endpointUrl: 'javascript:alert(1)' },
+            { id: '3', name: 'Also Valid', endpointUrl: 'https://example.com' },
+          ],
+          selectedId: '1',
+        },
+        version: 0,
+      }
+      localStorageMock.setItem('lc-instances', JSON.stringify(data))
+
+      const persistApi = useInstancesStore.persist
+      persistApi.rehydrate()
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(2)
+      expect(instances.map((i) => i.name)).toEqual(['Valid', 'Also Valid'])
+    })
+
+    it('resets selectedId if it references a filtered instance', () => {
+      const data = {
+        state: {
+          instances: [
+            { id: '1', name: 'Invalid', endpointUrl: 'javascript:alert(1)' },
+            { id: '2', name: 'Valid', endpointUrl: 'http://localhost:4200' },
+          ],
+          selectedId: '1', // References the invalid instance
+        },
+        version: 0,
+      }
+      localStorageMock.setItem('lc-instances', JSON.stringify(data))
+
+      const persistApi = useInstancesStore.persist
+      persistApi.rehydrate()
+
+      const { selectedId, instances } = useInstancesStore.getState()
+      // Should select the first valid instance instead
+      expect(selectedId).toBe('2')
+      expect(instances).toHaveLength(1)
+    })
+
+    it('handles instances array that is not an array', () => {
+      const data = {
+        state: {
+          instances: 'not an array',
+          selectedId: null,
+        },
+        version: 0,
+      }
+      localStorageMock.setItem('lc-instances', JSON.stringify(data))
+
+      const persistApi = useInstancesStore.persist
+      persistApi.rehydrate()
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(0)
+    })
+
+    it('handles instance with missing fields', () => {
+      const data = {
+        state: {
+          instances: [
+            { id: '1', name: 'Valid', endpointUrl: 'http://localhost:4200' },
+            { id: '2', name: 'Missing URL' }, // No endpointUrl
+            { id: '3', endpointUrl: 'http://example.com' }, // No name
+          ],
+          selectedId: '1',
+        },
+        version: 0,
+      }
+      localStorageMock.setItem('lc-instances', JSON.stringify(data))
+
+      const persistApi = useInstancesStore.persist
+      persistApi.rehydrate()
+
+      const { instances } = useInstancesStore.getState()
+      expect(instances).toHaveLength(1)
+      expect(instances[0].name).toBe('Valid')
     })
   })
 })
