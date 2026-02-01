@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { validateEndpointUrl } from '@/lib/utils'
 import { type Instance, useInstancesStore } from '@/stores/instances'
 
 interface InstanceFormProps {
@@ -13,15 +14,41 @@ interface InstanceFormProps {
 export function InstanceForm({ instance, onSuccess, onCancel }: InstanceFormProps) {
   const [name, setName] = useState(instance?.name ?? '')
   const [endpointUrl, setEndpointUrl] = useState(instance?.endpointUrl ?? '')
+  const [urlError, setUrlError] = useState<string | null>(null)
   const addInstance = useInstancesStore((state) => state.addInstance)
   const updateInstance = useInstancesStore((state) => state.updateInstance)
 
   const isEditing = !!instance
-  const isValid = name.trim() !== '' && endpointUrl.trim() !== ''
+  const urlValidation = validateEndpointUrl(endpointUrl)
+  const isValid = name.trim() !== '' && urlValidation.valid
+
+  const handleUrlChange = (value: string) => {
+    setEndpointUrl(value)
+    // Clear error while typing, only show on blur or submit
+    if (urlError) {
+      setUrlError(null)
+    }
+  }
+
+  const handleUrlBlur = () => {
+    if (endpointUrl.trim()) {
+      const result = validateEndpointUrl(endpointUrl)
+      if (!result.valid) {
+        setUrlError(result.error ?? null)
+      }
+    }
+  }
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!isValid) return
+
+    const result = validateEndpointUrl(endpointUrl)
+    if (!result.valid) {
+      setUrlError(result.error ?? null)
+      return
+    }
+
+    if (!name.trim()) return
 
     if (isEditing) {
       updateInstance(instance.id, name.trim(), endpointUrl.trim())
@@ -29,6 +56,7 @@ export function InstanceForm({ instance, onSuccess, onCancel }: InstanceFormProp
       addInstance(name.trim(), endpointUrl.trim())
       setName('')
       setEndpointUrl('')
+      setUrlError(null)
     }
     onSuccess?.()
   }
@@ -49,9 +77,17 @@ export function InstanceForm({ instance, onSuccess, onCancel }: InstanceFormProp
         <Input
           id="endpointUrl"
           value={endpointUrl}
-          onChange={(e) => setEndpointUrl(e.target.value)}
+          onChange={(e) => handleUrlChange(e.target.value)}
+          onBlur={handleUrlBlur}
           placeholder="http://192.168.1.100:4200"
+          aria-invalid={!!urlError}
+          aria-describedby={urlError ? 'endpointUrl-error' : undefined}
         />
+        {urlError && (
+          <p id="endpointUrl-error" className="text-sm text-destructive">
+            {urlError}
+          </p>
+        )}
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={!isValid}>
