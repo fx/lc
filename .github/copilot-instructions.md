@@ -1,5 +1,10 @@
 # Copilot Review Instructions
 
+## Intentional Patterns (Do Not Flag)
+
+- **`server.allowedHosts: true` in vite.config.ts** - Intentional for development in remote/containerized environments (Coder workspaces, Codespaces, etc.) where the hostname is dynamic
+- **`server.host: '0.0.0.0'`** - Required for external access in containerized dev environments
+
 ## Task Completion Verification
 
 When reviewing PRs, verify that any tasks completed by the PR are properly marked in `docs/PROJECT.md`:
