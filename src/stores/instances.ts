@@ -54,9 +54,15 @@ function sanitizeInstance(instance: unknown): Instance | null {
 /**
  * Custom storage with error handling for corrupted localStorage.
  * If data is invalid or corrupted, returns empty state instead of crashing.
+ * Includes SSR guard to skip storage operations during server-side rendering.
  */
 const safeStorage: PersistStorage<InstancesState> = {
   getItem: (name: string): StorageValue<InstancesState> | null => {
+    // SSR guard: localStorage is not available on the server
+    if (typeof window === 'undefined') {
+      return null
+    }
+
     try {
       const raw = localStorage.getItem(name)
       if (!raw) return null
@@ -116,6 +122,11 @@ const safeStorage: PersistStorage<InstancesState> = {
   },
 
   setItem: (name: string, value: StorageValue<InstancesState>): void => {
+    // SSR guard: localStorage is not available on the server
+    if (typeof window === 'undefined') {
+      return
+    }
+
     try {
       localStorage.setItem(name, JSON.stringify(value))
     } catch (error) {
@@ -124,6 +135,11 @@ const safeStorage: PersistStorage<InstancesState> = {
   },
 
   removeItem: (name: string): void => {
+    // SSR guard: localStorage is not available on the server
+    if (typeof window === 'undefined') {
+      return
+    }
+
     try {
       localStorage.removeItem(name)
     } catch (error) {

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,11 +12,16 @@ interface InstanceFormProps {
 }
 
 export function InstanceForm({ instance, onSuccess, onCancel }: InstanceFormProps) {
+  const formId = useId()
   const [name, setName] = useState(instance?.name ?? '')
   const [endpointUrl, setEndpointUrl] = useState(instance?.endpointUrl ?? '')
   const [urlError, setUrlError] = useState<string | null>(null)
   const addInstance = useInstancesStore((state) => state.addInstance)
   const updateInstance = useInstancesStore((state) => state.updateInstance)
+
+  const nameId = `${formId}-name`
+  const endpointUrlId = `${formId}-endpointUrl`
+  const endpointUrlErrorId = `${formId}-endpointUrl-error`
 
   const isEditing = !!instance
   const urlValidation = validateEndpointUrl(endpointUrl)
@@ -64,27 +69,27 @@ export function InstanceForm({ instance, onSuccess, onCancel }: InstanceFormProp
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor={nameId}>Name</Label>
         <Input
-          id="name"
+          id={nameId}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Living Room Display"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="endpointUrl">Endpoint URL</Label>
+        <Label htmlFor={endpointUrlId}>Endpoint URL</Label>
         <Input
-          id="endpointUrl"
+          id={endpointUrlId}
           value={endpointUrl}
           onChange={(e) => handleUrlChange(e.target.value)}
           onBlur={handleUrlBlur}
           placeholder="http://192.168.1.100:4200"
           aria-invalid={!!urlError}
-          aria-describedby={urlError ? 'endpointUrl-error' : undefined}
+          aria-describedby={urlError ? endpointUrlErrorId : undefined}
         />
         {urlError && (
-          <p id="endpointUrl-error" className="text-sm text-destructive">
+          <p id={endpointUrlErrorId} className="text-sm text-destructive">
             {urlError}
           </p>
         )}

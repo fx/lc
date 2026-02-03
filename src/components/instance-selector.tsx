@@ -4,7 +4,6 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -29,27 +28,28 @@ export function InstanceSelector() {
   }
 
   return (
-    <Select value={selectedId ?? undefined} onValueChange={selectInstance}>
-      <SelectTrigger className="w-[200px]">
-        <SelectValue placeholder="Select instance">
-          {selectedInstance?.name ?? 'Select instance'}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {instances.map((instance) => (
-          <SelectItem key={instance.id} value={instance.id}>
-            {instance.name}
-          </SelectItem>
-        ))}
-        <SelectSeparator />
-        <Link
-          to="/settings"
-          className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Manage instances
-        </Link>
-      </SelectContent>
-    </Select>
+    <div className="flex items-center gap-2">
+      <Select value={selectedId ?? undefined} onValueChange={selectInstance}>
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder="Select instance">
+            {selectedInstance?.name ?? 'Select instance'}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {instances.map((instance) => (
+            <SelectItem key={instance.id} value={instance.id}>
+              {instance.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Link
+        to="/settings"
+        className="flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        aria-label="Manage instances"
+      >
+        <Settings className="h-4 w-4" />
+      </Link>
+    </div>
   )
 }
