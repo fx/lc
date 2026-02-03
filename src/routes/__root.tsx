@@ -1,6 +1,7 @@
 import '@/styles/globals.css'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
+import { Header } from '@/components/header'
 import { ThemeProvider } from '@/components/theme-provider'
 import type { RouterContext } from '@/router'
 
@@ -23,6 +24,7 @@ function RootComponent() {
         <ThemeProvider>
           <QueryClientProvider client={queryClient}>
             <div className="min-h-screen flex flex-col">
+              <Header />
               <Outlet />
             </div>
           </QueryClientProvider>
