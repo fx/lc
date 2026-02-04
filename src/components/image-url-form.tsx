@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { sendImageToDisplay } from '@/lib/send-image-to-display'
+import { validateEndpointUrl } from '@/lib/utils'
 import { getSelectedInstance, useInstancesStore } from '@/stores/instances'
 
 export function ImageUrlForm() {
@@ -37,23 +38,8 @@ export function ImageUrlForm() {
     },
   })
 
-  const validateUrl = (url: string): { valid: boolean; error?: string } => {
-    const trimmed = url.trim()
-    if (!trimmed) {
-      return { valid: false, error: 'URL is required' }
-    }
-
-    try {
-      const parsed = new URL(trimmed)
-      const protocol = parsed.protocol.toLowerCase()
-      if (protocol !== 'http:' && protocol !== 'https:') {
-        return { valid: false, error: 'URL must use http:// or https://' }
-      }
-      return { valid: true }
-    } catch {
-      return { valid: false, error: 'Invalid URL format' }
-    }
-  }
+  // Use shared URL validation from utils
+  const validateUrl = validateEndpointUrl
 
   const handleUrlChange = (value: string) => {
     setImageUrl(value)

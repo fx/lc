@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { Jimp } from 'jimp'
+import { validateEndpointUrl } from './utils'
 
 interface SendImageInput {
   imageUrl: string
@@ -11,12 +12,30 @@ interface SendImageResult {
   error?: string
 }
 
+// Configuration bounds for display dimensions
+const MIN_DIMENSION = 1
+const MAX_DIMENSION = 1024
+
 /**
  * Server function to send an image to the LED matrix display.
  * Runs entirely on the server to bypass CORS restrictions.
  */
 export const sendImageToDisplay = createServerFn({ method: 'POST' })
-  .inputValidator((input: SendImageInput) => input)
+  .inputValidator((input: SendImageInput) => {
+    // Validate imageUrl uses safe protocol (http/https only)
+    const imageUrlValidation = validateEndpointUrl(input.imageUrl)
+    if (!imageUrlValidation.valid) {
+      throw new Error(`Invalid image URL: ${imageUrlValidation.error}`)
+    }
+
+    // Validate endpointUrl uses safe protocol (http/https only)
+    const endpointValidation = validateEndpointUrl(input.endpointUrl)
+    if (!endpointValidation.valid) {
+      throw new Error(`Invalid endpoint URL: ${endpointValidation.error}`)
+    }
+
+    return input
+  })
   .handler(async ({ data }): Promise<SendImageResult> => {
     const { imageUrl, endpointUrl } = data
 
@@ -31,6 +50,21 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
       }
       const config = (await configResponse.json()) as { width: number; height: number }
       const { width, height } = config
+
+      // Validate configuration dimensions
+      if (
+        !Number.isInteger(width) ||
+        !Number.isInteger(height) ||
+        width < MIN_DIMENSION ||
+        width > MAX_DIMENSION ||
+        height < MIN_DIMENSION ||
+        height > MAX_DIMENSION
+      ) {
+        return {
+          success: false,
+          error: `Invalid display dimensions: width=${width}, height=${height}. Expected integers between ${MIN_DIMENSION} and ${MAX_DIMENSION}.`,
+        }
+      }
 
       // 2. Fetch the image
       const imageResponse = await fetch(imageUrl)

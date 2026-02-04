@@ -286,4 +286,83 @@ describe('ImageUrlForm', () => {
       })
     })
   })
+
+  describe('dangerous URL protocol validation', () => {
+    beforeEach(() => {
+      useInstancesStore.setState({
+        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
+        selectedId: '1',
+      })
+    })
+
+    it('rejects javascript: URLs', () => {
+      const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
+      const form = getForm(container)
+
+      const urlInput = within(form).getByLabelText('Image URL')
+      fireEvent.change(urlInput, { target: { value: 'javascript:alert(1)' } })
+      fireEvent.blur(urlInput)
+
+      expect(within(form).getByText(/URL must use http:\/\/ or https:\/\//i)).toBeDefined()
+    })
+
+    it('rejects data: URLs', () => {
+      const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
+      const form = getForm(container)
+
+      const urlInput = within(form).getByLabelText('Image URL')
+      fireEvent.change(urlInput, {
+        target: { value: 'data:text/html,<script>alert(1)</script>' },
+      })
+      fireEvent.blur(urlInput)
+
+      expect(within(form).getByText(/URL must use http:\/\/ or https:\/\//i)).toBeDefined()
+    })
+
+    it('rejects file: URLs', () => {
+      const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
+      const form = getForm(container)
+
+      const urlInput = within(form).getByLabelText('Image URL')
+      fireEvent.change(urlInput, { target: { value: 'file:///etc/passwd' } })
+      fireEvent.blur(urlInput)
+
+      expect(within(form).getByText(/URL must use http:\/\/ or https:\/\//i)).toBeDefined()
+    })
+
+    it('disables submit button for javascript: URLs', () => {
+      const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
+      const form = getForm(container)
+
+      const urlInput = within(form).getByLabelText('Image URL')
+      fireEvent.change(urlInput, { target: { value: 'javascript:alert(1)' } })
+
+      const submitButton = within(form).getByRole('button', { name: 'Send Frame' })
+      expect(submitButton).toHaveProperty('disabled', true)
+    })
+
+    it('disables submit button for data: URLs', () => {
+      const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
+      const form = getForm(container)
+
+      const urlInput = within(form).getByLabelText('Image URL')
+      fireEvent.change(urlInput, {
+        target: { value: 'data:image/png;base64,iVBORw0KGgo=' },
+      })
+
+      const submitButton = within(form).getByRole('button', { name: 'Send Frame' })
+      expect(submitButton).toHaveProperty('disabled', true)
+    })
+
+    it('disables submit button for file: URLs', () => {
+      const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
+      const form = getForm(container)
+
+      const urlInput = within(form).getByLabelText('Image URL')
+      fireEvent.change(urlInput, { target: { value: 'file:///etc/passwd' } })
+
+      const submitButton = within(form).getByRole('button', { name: 'Send Frame' })
+      expect(submitButton).toHaveProperty('disabled', true)
+    })
+  })
 })
