@@ -3,8 +3,6 @@
  * Handles fetching configuration, loading images, resizing, and converting to RGBA.
  */
 
-import { fetchConfigurationProxy, sendFrameProxy } from './server/led-matrix-proxy'
-
 /**
  * Fetches display configuration from the LED matrix bridge via server-side proxy.
  * Uses proxy to bypass CORS restrictions for browser-to-device communication.
@@ -14,13 +12,16 @@ import { fetchConfigurationProxy, sendFrameProxy } from './server/led-matrix-pro
 export async function fetchConfiguration(
   endpointUrl: string,
 ): Promise<{ width: number; height: number }> {
-  try {
-    return await fetchConfigurationProxy({ data: endpointUrl })
-  } catch (error) {
-    throw new Error(
-      error instanceof Error ? error.message : `Failed to fetch configuration: ${error}`,
-    )
+  const response = await fetch(
+    `/api/proxy/configuration?endpointUrl=${encodeURIComponent(endpointUrl)}`,
+  )
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || `Failed to fetch configuration: ${response.status}`)
   }
+
+  return { width: data.width, height: data.height }
 }
 
 /**
@@ -78,10 +79,15 @@ export async function processImageToRgba(
  * @param rgbaData - Raw RGBA pixel data as Uint8Array
  */
 export async function sendFrame(endpointUrl: string, rgbaData: Uint8Array): Promise<void> {
-  try {
-    // Convert Uint8Array to regular array for serialization
-    await sendFrameProxy({ data: { endpointUrl, frameData: Array.from(rgbaData) } })
-  } catch (error) {
-    throw new Error(error instanceof Error ? error.message : `Failed to send frame: ${error}`)
+  const response = await fetch('/api/proxy/frame', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpointUrl, frameData: Array.from(rgbaData) }),
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || `Failed to send frame: ${response.status}`)
   }
 }
