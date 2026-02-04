@@ -41,8 +41,17 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
 
       // 3. Process image with jimp: resize and get raw RGBA bitmap
       const image = await Jimp.read(imageBuffer)
-      image.cover({ w: width, h: height })
-      const rgbaBuffer = image.bitmap.data
+      const resized = image.cover({ w: width, h: height })
+      const rgbaBuffer = resized.bitmap.data
+
+      // Validate frame size (width * height * 4 bytes per pixel)
+      const expectedSize = width * height * 4
+      if (rgbaBuffer.length !== expectedSize) {
+        return {
+          success: false,
+          error: `Frame size mismatch: got ${rgbaBuffer.length} bytes, expected ${expectedSize} (${width}x${height}x4)`,
+        }
+      }
 
       // 4. Send frame to display
       const formData = new FormData()
