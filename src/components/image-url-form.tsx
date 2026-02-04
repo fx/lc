@@ -24,7 +24,9 @@ export function ImageUrlForm() {
         throw new Error('No instance selected')
       }
 
-      const result = await sendImageToDisplay(url, selectedInstance.endpointUrl)
+      const result = await sendImageToDisplay({
+        data: { imageUrl: url, endpointUrl: selectedInstance.endpointUrl },
+      })
       if (!result.success) {
         throw new Error(result.error || 'Failed to send image')
       }

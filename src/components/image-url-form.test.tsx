@@ -278,10 +278,12 @@ describe('ImageUrlForm', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(sendImageModule.sendImageToDisplay).toHaveBeenCalledWith(
-        'https://example.com/test.png',
-        'http://localhost:4200',
-      )
+      expect(sendImageModule.sendImageToDisplay).toHaveBeenCalledWith({
+        data: {
+          imageUrl: 'https://example.com/test.png',
+          endpointUrl: 'http://localhost:4200',
+        },
+      })
     })
   })
 })
