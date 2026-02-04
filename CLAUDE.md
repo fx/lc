@@ -12,6 +12,16 @@ bun run check:fix  # Lint + format with auto-fix
 bun run test       # Run Vitest tests
 ```
 
+## Docker Setup
+
+Docker is available but the daemon may not be running. Start it with:
+
+```bash
+sudo service docker start
+sudo docker compose up -d   # Start PostgreSQL
+bun run db:push             # Push schema to database
+```
+
 ## Architecture
 
 **Stack**: TanStack Start (React 19, Vite 7, TanStack Router/Query), Tailwind CSS 4, Bun runtime
