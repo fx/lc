@@ -10,15 +10,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { type Instance, useInstancesStore } from '@/stores/instances'
+import type { Instance } from '@/db/schema'
+import { useDeleteInstance, useInstances } from '@/hooks/use-instances'
 
 export function InstanceList() {
-  const instances = useInstancesStore((state) => state.instances)
-  const deleteInstance = useInstancesStore((state) => state.deleteInstance)
+  const { data: instances, isLoading, error } = useInstances()
+  const deleteInstanceMutation = useDeleteInstance()
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null)
   const [deletingInstance, setDeletingInstance] = useState<Instance | null>(null)
 
-  if (instances.length === 0) {
+  if (isLoading) {
+    return <p className="text-muted-foreground text-sm">Loading instances...</p>
+  }
+
+  if (error) {
+    return <p className="text-destructive text-sm">Failed to load instances: {error.message}</p>
+  }
+
+  if (!instances || instances.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
         No instances configured. Add one below to get started.
@@ -26,10 +35,14 @@ export function InstanceList() {
     )
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingInstance) {
-      deleteInstance(deletingInstance.id)
-      setDeletingInstance(null)
+      try {
+        await deleteInstanceMutation.mutateAsync(deletingInstance.id)
+        setDeletingInstance(null)
+      } catch {
+        // Error is handled by mutation state
+      }
     }
   }
 
@@ -89,11 +102,19 @@ export function InstanceList() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingInstance(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeletingInstance(null)}
+              disabled={deleteInstanceMutation.isPending}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteInstanceMutation.isPending}
+            >
+              {deleteInstanceMutation.isPending ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

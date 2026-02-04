@@ -2,15 +2,34 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
 import { DisplayStatus } from '@/components/display-status'
 import { ImageUrlForm } from '@/components/image-url-form'
-import { useInstancesStore } from '@/stores/instances'
+import { useInstances } from '@/hooks/use-instances'
 
 export const Route = createFileRoute('/')({
   component: Home,
 })
 
 function Home() {
-  const instances = useInstancesStore((state) => state.instances)
-  const hasInstances = instances.length > 0
+  const { data: instances, isLoading, error } = useInstances()
+  const hasInstances = instances && instances.length > 0
+
+  if (isLoading) {
+    return (
+      <main className="flex-1 p-6">
+        <p className="text-muted-foreground">Loading...</p>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main className="flex-1 p-6">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+          <h2 className="text-xl font-semibold mb-2 text-destructive">Error loading instances</h2>
+          <p className="text-muted-foreground mb-4">{error.message}</p>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="flex-1 p-6">

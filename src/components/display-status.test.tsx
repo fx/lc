@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import * as apiModule from '@/lib/api'
 import { useInstancesStore } from '@/stores/instances'
 import { DisplayStatus } from './display-status'
@@ -21,24 +21,22 @@ vi.mock('@/lib/api', () => ({
   getConfiguration: vi.fn(),
 }))
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
-      store[key] = value
-    },
-    removeItem: (key: string) => {
-      delete store[key]
-    },
-    clear: () => {
-      store = {}
-    },
-  }
-})()
+// Mock useInstances hook
+vi.mock('@/hooks/use-instances', () => ({
+  useInstances: vi.fn(),
+}))
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+import { useInstances } from '@/hooks/use-instances'
+
+const mockInstances = [
+  {
+    id: '1',
+    name: 'Test Display',
+    endpointUrl: 'http://localhost:4200',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -54,9 +52,13 @@ function createWrapper() {
 
 describe('DisplayStatus', () => {
   beforeEach(() => {
-    localStorageMock.clear()
-    useInstancesStore.setState({ instances: [], selectedId: null })
+    useInstancesStore.setState({ selectedId: null })
     vi.clearAllMocks()
+    ;(useInstances as Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    })
   })
 
   afterEach(() => {
@@ -65,10 +67,12 @@ describe('DisplayStatus', () => {
 
   describe('rendering', () => {
     it('renders card with title and connection indicator', () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test Display', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockImplementation(() => new Promise(() => {}))
       vi.mocked(apiModule.getConfiguration).mockImplementation(() => new Promise(() => {}))
@@ -81,7 +85,12 @@ describe('DisplayStatus', () => {
     })
 
     it('shows placeholders when no instance selected', () => {
-      useInstancesStore.setState({ instances: [], selectedId: null })
+      ;(useInstances as Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: null })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
 
@@ -92,10 +101,12 @@ describe('DisplayStatus', () => {
     })
 
     it('shows dimensions when configuration is loaded', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -110,10 +121,12 @@ describe('DisplayStatus', () => {
 
   describe('connection indicator', () => {
     it('shows yellow indicator when loading', () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockImplementation(() => new Promise(() => {}))
       vi.mocked(apiModule.getConfiguration).mockImplementation(() => new Promise(() => {}))
@@ -126,10 +139,12 @@ describe('DisplayStatus', () => {
     })
 
     it('shows green indicator when connected', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -144,10 +159,12 @@ describe('DisplayStatus', () => {
     })
 
     it('shows red indicator when disconnected', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockRejectedValue(new Error('Connection refused'))
       vi.mocked(apiModule.getConfiguration).mockRejectedValue(new Error('Connection refused'))
@@ -164,10 +181,12 @@ describe('DisplayStatus', () => {
 
   describe('brightness control', () => {
     it('displays current brightness value', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 200 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -180,7 +199,12 @@ describe('DisplayStatus', () => {
     })
 
     it('disables slider when no instance selected', () => {
-      useInstancesStore.setState({ instances: [], selectedId: null })
+      ;(useInstances as Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: null })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
 
@@ -189,10 +213,12 @@ describe('DisplayStatus', () => {
     })
 
     it('disables slider when loading', () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockImplementation(() => new Promise(() => {}))
       vi.mocked(apiModule.getConfiguration).mockImplementation(() => new Promise(() => {}))
@@ -204,10 +230,12 @@ describe('DisplayStatus', () => {
     })
 
     it('updates displayed value when slider is interacted with', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -238,10 +266,12 @@ describe('DisplayStatus', () => {
 
   describe('error handling', () => {
     it('shows error message when brightness fetch fails', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockRejectedValue(
         new Error('Failed to get brightness: timeout'),
@@ -259,10 +289,12 @@ describe('DisplayStatus', () => {
     })
 
     it('shows generic error message for non-Error exceptions', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockRejectedValue('string error')
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -280,10 +312,12 @@ describe('DisplayStatus', () => {
 
   describe('API calls', () => {
     it('calls getBrightness with correct endpoint URL', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -301,10 +335,12 @@ describe('DisplayStatus', () => {
     })
 
     it('calls getConfiguration with correct endpoint URL', async () => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
@@ -322,7 +358,12 @@ describe('DisplayStatus', () => {
     })
 
     it('does not fetch when no instance is selected', () => {
-      useInstancesStore.setState({ instances: [], selectedId: null })
+      ;(useInstances as Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: null })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
 
