@@ -5,7 +5,7 @@ import { createServerFn } from '@tanstack/react-start'
  * Bypasses CORS by making the request from the server.
  */
 export const fetchConfigurationProxy = createServerFn({ method: 'GET' })
-  .validator((endpointUrl: string) => endpointUrl)
+  .inputValidator((endpointUrl: string) => endpointUrl)
   .handler(async ({ data: endpointUrl }) => {
     const response = await fetch(`${endpointUrl}/configuration`)
     if (!response.ok) {
@@ -20,7 +20,7 @@ export const fetchConfigurationProxy = createServerFn({ method: 'GET' })
  * Bypasses CORS by making the request from the server.
  */
 export const sendFrameProxy = createServerFn({ method: 'POST' })
-  .validator((input: { endpointUrl: string; frameData: number[] }) => input)
+  .inputValidator((input: { endpointUrl: string; frameData: number[] }) => input)
   .handler(async ({ data }) => {
     const { endpointUrl, frameData } = data
     const rgbaData = new Uint8Array(frameData)
