@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { type FormEvent, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ export function ImageUrlForm() {
   const formId = useId()
   const [imageUrl, setImageUrl] = useState('')
   const [urlError, setUrlError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   const selectedInstance = useInstancesStore(getSelectedInstance)
 
@@ -31,10 +32,12 @@ export function ImageUrlForm() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to send image')
       }
+      return result
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       setImageUrl('')
       setUrlError(null)
+      setWarning(result.warning ?? null)
     },
   })
 
@@ -43,9 +46,12 @@ export function ImageUrlForm() {
 
   const handleUrlChange = (value: string) => {
     setImageUrl(value)
-    // Clear error while typing
+    // Clear error and warning while typing
     if (urlError) {
       setUrlError(null)
+    }
+    if (warning) {
+      setWarning(null)
     }
     // Reset mutation state when user starts typing again
     if (mutation.isSuccess || mutation.isError) {
@@ -134,6 +140,13 @@ export function ImageUrlForm() {
               <span className="flex items-center gap-1 text-sm text-destructive">
                 <XCircle className="h-4 w-4" />
                 {mutation.error instanceof Error ? mutation.error.message : 'Failed to send frame'}
+              </span>
+            )}
+
+            {warning && (
+              <span className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4" />
+                {warning}
               </span>
             )}
           </div>

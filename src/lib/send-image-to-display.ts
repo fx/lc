@@ -10,11 +10,21 @@ interface SendImageInput {
 interface SendImageResult {
   success: boolean
   error?: string
+  warning?: string
 }
 
 // Configuration bounds for display dimensions
 const MIN_DIMENSION = 1
 const MAX_DIMENSION = 1024
+
+// Request timeout in milliseconds
+const FETCH_TIMEOUT_MS = 15000
+
+// Maximum image file size in bytes (50MB)
+const MAX_IMAGE_SIZE_BYTES = 50 * 1024 * 1024
+
+// Recommended maximum source image dimensions
+const RECOMMENDED_MAX_DIMENSION = 256
 
 /**
  * Server function to send an image to the LED matrix display.
@@ -44,7 +54,9 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
 
     try {
       // 1. Get display configuration
-      const configResponse = await fetch(`${baseUrl}/configuration`)
+      const configResponse = await fetch(`${baseUrl}/configuration`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
       if (!configResponse.ok) {
         return { success: false, error: `Failed to get display config: ${configResponse.status}` }
       }
@@ -67,14 +79,35 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
       }
 
       // 2. Fetch the image
-      const imageResponse = await fetch(imageUrl)
+      const imageResponse = await fetch(imageUrl, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
       if (!imageResponse.ok) {
         return { success: false, error: `Failed to fetch image: ${imageResponse.status}` }
       }
+
+      // Check Content-Length header before downloading
+      const contentLength = imageResponse.headers.get('Content-Length')
+      if (contentLength && Number.parseInt(contentLength, 10) > MAX_IMAGE_SIZE_BYTES) {
+        return {
+          success: false,
+          error: `Image too large: ${Math.round(Number.parseInt(contentLength, 10) / 1024 / 1024)}MB exceeds ${MAX_IMAGE_SIZE_BYTES / 1024 / 1024}MB limit`,
+        }
+      }
+
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
 
       // 3. Process image with jimp: resize and get raw RGBA bitmap
       const image = await Jimp.read(imageBuffer)
+
+      // Check source image dimensions and set warning if too large
+      let warning: string | undefined
+      const sourceWidth = image.width
+      const sourceHeight = image.height
+      if (sourceWidth > RECOMMENDED_MAX_DIMENSION || sourceHeight > RECOMMENDED_MAX_DIMENSION) {
+        warning = `Source image dimensions (${sourceWidth}x${sourceHeight}) exceed recommended maximum (${RECOMMENDED_MAX_DIMENSION}x${RECOMMENDED_MAX_DIMENSION})`
+      }
+
       const resized = image.cover({ w: width, h: height })
       const rgbaBuffer = resized.bitmap.data
 
@@ -94,14 +127,22 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
       const frameResponse = await fetch(`${baseUrl}/frame`, {
         method: 'POST',
         body: formData,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       })
 
       if (!frameResponse.ok) {
         return { success: false, error: `Failed to send frame: ${frameResponse.status}` }
       }
 
-      return { success: true }
+      return { success: true, warning }
     } catch (error) {
+      // Handle timeout errors with distinct message
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        return {
+          success: false,
+          error: `Request timed out after ${FETCH_TIMEOUT_MS / 1000} seconds`,
+        }
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

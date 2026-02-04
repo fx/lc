@@ -17,10 +17,10 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Create image URL input on home page with instance selector
   - [x] Fetch image, resize to display dimensions from GET /configuration, convert to RGBA
   - [x] Send frame via POST /frame (form-data, field: "frame"), show loading/success/error states
-- [ ] Feature: Image URL Control Hardening
-  - [ ] Add fetch timeout with AbortController to prevent hanging requests
-  - [ ] Add image size limit check (Content-Length header) before download
-  - [ ] Add display dimension sanity check (warn if > 256x256)
+- [x] Feature: Image URL Control Hardening (PR #7)
+  - [x] Add fetch timeout with AbortController to prevent hanging requests
+  - [x] Add image size limit check (Content-Length header) before download
+  - [x] Add display dimension sanity check (warn if > 256x256)
 - [ ] Feature: Display Status
   - [ ] Show current brightness and display dimensions from API
   - [ ] Add brightness slider control via POST /brightness
