@@ -1,47 +1,48 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchConfiguration, loadImage, processImageToRgba, sendFrame } from './image-processing'
 
+// Mock the server proxy functions
+vi.mock('./server/led-matrix-proxy', () => ({
+  fetchConfigurationProxy: vi.fn(),
+  sendFrameProxy: vi.fn(),
+}))
+
+import { fetchConfigurationProxy, sendFrameProxy } from './server/led-matrix-proxy'
+
 describe('fetchConfiguration', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn())
-  })
-
   afterEach(() => {
-    vi.unstubAllGlobals()
+    vi.clearAllMocks()
   })
 
-  it('returns width and height from successful response', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ width: 64, height: 32 }),
-    } as Response)
+  it('returns width and height from successful server function call', async () => {
+    vi.mocked(fetchConfigurationProxy).mockResolvedValue({ width: 64, height: 32 })
 
     const result = await fetchConfiguration('http://localhost:4200')
 
-    expect(fetch).toHaveBeenCalledWith('http://localhost:4200/configuration')
+    expect(fetchConfigurationProxy).toHaveBeenCalledWith({ data: 'http://localhost:4200' })
     expect(result).toEqual({ width: 64, height: 32 })
   })
 
-  it('throws on non-ok response', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-      status: 500,
-    } as Response)
+  it('throws error from server function', async () => {
+    vi.mocked(fetchConfigurationProxy).mockRejectedValue(new Error('Upstream error: 500'))
+
+    await expect(fetchConfiguration('http://localhost:4200')).rejects.toThrow('Upstream error: 500')
+  })
+
+  it('handles non-Error exceptions', async () => {
+    vi.mocked(fetchConfigurationProxy).mockRejectedValue('Unknown error')
 
     await expect(fetchConfiguration('http://localhost:4200')).rejects.toThrow(
-      'Failed to fetch configuration: 500',
+      'Failed to fetch configuration: Unknown error',
     )
   })
 
-  it('constructs correct URL with endpoint', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ width: 128, height: 64 }),
-    } as Response)
+  it('passes endpoint URL to server function', async () => {
+    vi.mocked(fetchConfigurationProxy).mockResolvedValue({ width: 128, height: 64 })
 
     await fetchConfiguration('http://192.168.1.100:4200')
 
-    expect(fetch).toHaveBeenCalledWith('http://192.168.1.100:4200/configuration')
+    expect(fetchConfigurationProxy).toHaveBeenCalledWith({ data: 'http://192.168.1.100:4200' })
   })
 })
 
@@ -241,45 +242,43 @@ describe('processImageToRgba', () => {
 })
 
 describe('sendFrame', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn())
-  })
-
   afterEach(() => {
-    vi.unstubAllGlobals()
+    vi.clearAllMocks()
   })
 
-  it('creates FormData with frame field and POSTs to correct endpoint', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-    } as Response)
+  it('calls server function with endpointUrl and frame data as array', async () => {
+    vi.mocked(sendFrameProxy).mockResolvedValue({ success: true })
 
     const rgbaData = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255])
 
     await sendFrame('http://localhost:4200', rgbaData)
 
-    expect(fetch).toHaveBeenCalledTimes(1)
-
-    const [url, options] = vi.mocked(fetch).mock.calls[0]
-    expect(url).toBe('http://localhost:4200/frame')
-    expect(options?.method).toBe('POST')
-    expect(options?.body).toBeInstanceOf(FormData)
-
-    const formData = options?.body as FormData
-    const frameBlob = formData.get('frame')
-    expect(frameBlob).toBeInstanceOf(Blob)
+    expect(sendFrameProxy).toHaveBeenCalledTimes(1)
+    expect(sendFrameProxy).toHaveBeenCalledWith({
+      data: {
+        endpointUrl: 'http://localhost:4200',
+        frameData: [255, 0, 0, 255, 0, 255, 0, 255],
+      },
+    })
   })
 
-  it('throws on non-ok response', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-      status: 400,
-    } as Response)
+  it('throws error from server function', async () => {
+    vi.mocked(sendFrameProxy).mockRejectedValue(new Error('Upstream error: 400'))
 
     const rgbaData = new Uint8Array([255, 0, 0, 255])
 
     await expect(sendFrame('http://localhost:4200', rgbaData)).rejects.toThrow(
-      'Failed to send frame: 400',
+      'Upstream error: 400',
+    )
+  })
+
+  it('handles non-Error exceptions', async () => {
+    vi.mocked(sendFrameProxy).mockRejectedValue('Unknown error')
+
+    const rgbaData = new Uint8Array([255, 0, 0, 255])
+
+    await expect(sendFrame('http://localhost:4200', rgbaData)).rejects.toThrow(
+      'Failed to send frame: Unknown error',
     )
   })
 })

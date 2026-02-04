@@ -3,20 +3,24 @@
  * Handles fetching configuration, loading images, resizing, and converting to RGBA.
  */
 
+import { fetchConfigurationProxy, sendFrameProxy } from './server/led-matrix-proxy'
+
 /**
- * Fetches display configuration from the LED matrix bridge.
+ * Fetches display configuration from the LED matrix bridge via server-side proxy.
+ * Uses proxy to bypass CORS restrictions for browser-to-device communication.
  * @param endpointUrl - Base URL of the bridge endpoint
  * @returns Display dimensions { width, height }
  */
 export async function fetchConfiguration(
   endpointUrl: string,
 ): Promise<{ width: number; height: number }> {
-  const response = await fetch(`${endpointUrl}/configuration`)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch configuration: ${response.status}`)
+  try {
+    return await fetchConfigurationProxy({ data: endpointUrl })
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? error.message : `Failed to fetch configuration: ${error}`,
+    )
   }
-  const data = await response.json()
-  return { width: data.width, height: data.height }
 }
 
 /**
@@ -68,20 +72,16 @@ export async function processImageToRgba(
 }
 
 /**
- * Sends RGBA frame data to the LED matrix bridge.
+ * Sends RGBA frame data to the LED matrix bridge via server-side proxy.
+ * Uses proxy to bypass CORS restrictions for browser-to-device communication.
  * @param endpointUrl - Base URL of the bridge endpoint
  * @param rgbaData - Raw RGBA pixel data as Uint8Array
  */
 export async function sendFrame(endpointUrl: string, rgbaData: Uint8Array): Promise<void> {
-  const formData = new FormData()
-  formData.append('frame', new Blob([rgbaData]))
-
-  const response = await fetch(`${endpointUrl}/frame`, {
-    method: 'POST',
-    body: formData,
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to send frame: ${response.status}`)
+  try {
+    // Convert Uint8Array to regular array for serialization
+    await sendFrameProxy({ data: { endpointUrl, frameData: Array.from(rgbaData) } })
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : `Failed to send frame: ${error}`)
   }
 }
