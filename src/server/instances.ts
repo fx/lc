@@ -1,25 +1,39 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
-import { db } from '@/db'
+import { db, withRetry } from '@/db'
+import { handleDbError } from '@/db/errors'
 import { type Instance, instances } from '@/db/schema'
+import { err, ok, type Result } from '@/lib/types'
 import { sanitizeString, validateEndpointUrl } from '@/lib/utils'
 
 export const getInstances = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<Instance[]> => {
-    const result = await db.query.instances.findMany({
-      orderBy: (instances, { asc }) => [asc(instances.createdAt)],
-    })
-    return result
+  async (): Promise<Result<Instance[]>> => {
+    try {
+      const result = await withRetry(() =>
+        db.query.instances.findMany({
+          orderBy: (instances, { asc }) => [asc(instances.createdAt)],
+        }),
+      )
+      return ok(result)
+    } catch (error) {
+      return handleDbError(error, 'getInstances')
+    }
   },
 )
 
 export const getInstanceById = createServerFn({ method: 'GET' })
   .inputValidator((id: string) => id)
-  .handler(async ({ data: id }): Promise<Instance | null> => {
-    const result = await db.query.instances.findFirst({
-      where: eq(instances.id, id),
-    })
-    return result ?? null
+  .handler(async ({ data: id }): Promise<Result<Instance | null>> => {
+    try {
+      const result = await withRetry(() =>
+        db.query.instances.findFirst({
+          where: eq(instances.id, id),
+        }),
+      )
+      return ok(result ?? null)
+    } catch (error) {
+      return handleDbError(error, 'getInstanceById')
+    }
   })
 
 export const createInstance = createServerFn({ method: 'POST' })
@@ -38,16 +52,22 @@ export const createInstance = createServerFn({ method: 'POST' })
 
     return { name: sanitizedName, endpointUrl: trimmedUrl }
   })
-  .handler(async ({ data }): Promise<Instance> => {
-    const [inserted] = await db
-      .insert(instances)
-      .values({
-        name: data.name,
-        endpointUrl: data.endpointUrl,
-      })
-      .returning()
+  .handler(async ({ data }): Promise<Result<Instance>> => {
+    try {
+      const [inserted] = await withRetry(() =>
+        db
+          .insert(instances)
+          .values({
+            name: data.name,
+            endpointUrl: data.endpointUrl,
+          })
+          .returning(),
+      )
 
-    return inserted
+      return ok(inserted)
+    } catch (error) {
+      return handleDbError(error, 'createInstance')
+    }
   })
 
 export const updateInstance = createServerFn({ method: 'POST' })
@@ -66,32 +86,44 @@ export const updateInstance = createServerFn({ method: 'POST' })
 
     return { id: data.id, name: sanitizedName, endpointUrl: trimmedUrl }
   })
-  .handler(async ({ data }): Promise<Instance> => {
-    const [updated] = await db
-      .update(instances)
-      .set({
-        name: data.name,
-        endpointUrl: data.endpointUrl,
-        updatedAt: new Date(),
-      })
-      .where(eq(instances.id, data.id))
-      .returning()
+  .handler(async ({ data }): Promise<Result<Instance>> => {
+    try {
+      const [updated] = await withRetry(() =>
+        db
+          .update(instances)
+          .set({
+            name: data.name,
+            endpointUrl: data.endpointUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(instances.id, data.id))
+          .returning(),
+      )
 
-    if (!updated) {
-      throw new Error('Instance not found')
+      if (!updated) {
+        return err('NOT_FOUND', 'Instance not found', 404)
+      }
+
+      return ok(updated)
+    } catch (error) {
+      return handleDbError(error, 'updateInstance')
     }
-
-    return updated
   })
 
 export const deleteInstance = createServerFn({ method: 'POST' })
   .inputValidator((id: string) => id)
-  .handler(async ({ data: id }): Promise<{ success: boolean }> => {
-    const result = await db.delete(instances).where(eq(instances.id, id)).returning()
+  .handler(async ({ data: id }): Promise<Result<{ deleted: boolean }>> => {
+    try {
+      const result = await withRetry(() =>
+        db.delete(instances).where(eq(instances.id, id)).returning(),
+      )
 
-    if (result.length === 0) {
-      throw new Error('Instance not found')
+      if (result.length === 0) {
+        return err('NOT_FOUND', 'Instance not found', 404)
+      }
+
+      return ok({ deleted: true })
+    } catch (error) {
+      return handleDbError(error, 'deleteInstance')
     }
-
-    return { success: true }
   })
