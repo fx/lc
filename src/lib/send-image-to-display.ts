@@ -16,7 +16,7 @@ interface SendImageResult {
  * Runs entirely on the server to bypass CORS restrictions.
  */
 export const sendImageToDisplay = createServerFn({ method: 'POST' })
-  .validator((input: SendImageInput) => input)
+  .inputValidator((input: SendImageInput) => input)
   .handler(async ({ data }): Promise<SendImageResult> => {
     const { imageUrl, endpointUrl } = data
 
