@@ -80,13 +80,15 @@ describe('DisplayStatus', () => {
       expect(document.querySelector('.bg-yellow-500')).toBeTruthy()
     })
 
-    it('shows dimensions placeholder when no instance selected', () => {
+    it('shows placeholders when no instance selected', () => {
       useInstancesStore.setState({ instances: [], selectedId: null })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
 
       expect(screen.getByText('Display Dimensions')).toBeDefined()
-      expect(screen.getByText('---')).toBeDefined()
+      expect(screen.getByText('Brightness')).toBeDefined()
+      // Both dimensions and brightness show '---' when no data
+      expect(screen.getAllByText('---')).toHaveLength(2)
     })
 
     it('shows dimensions when configuration is loaded', async () => {

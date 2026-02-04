@@ -44,11 +44,11 @@ function debounce<T extends (...args: unknown[]) => void>(
 
 interface ConnectionIndicatorProps {
   isConnected: boolean
-  isLoading: boolean
+  isFetching: boolean
 }
 
-function ConnectionIndicator({ isConnected, isLoading }: ConnectionIndicatorProps) {
-  if (isLoading) {
+function ConnectionIndicator({ isConnected, isFetching }: ConnectionIndicatorProps) {
+  if (isFetching) {
     return (
       <div
         className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse"
@@ -149,11 +149,12 @@ export function DisplayStatus() {
     }
   }, [brightnessQuery.data])
 
-  // Reset local state when instance changes
+  // Reset local state and cancel pending debounce when instance changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: instanceId triggers reset when instance changes
   useEffect(() => {
     setLocalBrightness(null)
-  }, [instanceId])
+    debouncedSetBrightness.cancel()
+  }, [instanceId, debouncedSetBrightness])
 
   const handleSliderChange = useCallback(
     (value: number[]) => {
@@ -171,10 +172,13 @@ export function DisplayStatus() {
 
   // Connection status derived from query state
   const isConnected = !brightnessQuery.isError && brightnessQuery.data !== undefined
+  const isFetching = brightnessQuery.isFetching
   const isLoading = brightnessQuery.isLoading
+  const hasBrightnessData = brightnessQuery.data != null
 
   // Display value (local state takes precedence for responsiveness)
-  const displayBrightness = localBrightness ?? brightnessQuery.data?.brightness ?? 0
+  // Show '---' when we don't have data yet to distinguish from actual 0 brightness
+  const displayBrightness = localBrightness ?? brightnessQuery.data?.brightness
 
   // Format dimensions display
   const dimensionsText = configQuery.data
@@ -185,7 +189,7 @@ export function DisplayStatus() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-lg">Display Status</CardTitle>
-        <ConnectionIndicator isConnected={isConnected} isLoading={isLoading} />
+        <ConnectionIndicator isConnected={isConnected} isFetching={isFetching} />
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Dimensions */}
@@ -194,6 +198,13 @@ export function DisplayStatus() {
           <p className="text-sm">
             {configQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : dimensionsText}
           </p>
+          {configQuery.isError && (
+            <p className="text-sm text-destructive">
+              {configQuery.error instanceof Error
+                ? configQuery.error.message
+                : 'Failed to load display configuration'}
+            </p>
+          )}
         </div>
 
         {/* Brightness */}
@@ -204,17 +215,20 @@ export function DisplayStatus() {
               {brightnessMutation.isPending && (
                 <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
               )}
-              <span className="text-sm tabular-nums">{displayBrightness}</span>
+              <span className="text-sm tabular-nums">{displayBrightness ?? '---'}</span>
             </div>
           </div>
           <Slider
-            value={[displayBrightness]}
+            value={[displayBrightness ?? 0]}
             min={0}
             max={255}
             step={1}
+            aria-label="Brightness"
             onValueChange={handleSliderChange}
             onValueCommit={handleSliderCommit}
-            disabled={!selectedInstance || isLoading}
+            disabled={
+              !selectedInstance || isLoading || brightnessQuery.isError || !hasBrightnessData
+            }
           />
           {mutationError && <p className="text-sm text-destructive">{mutationError}</p>}
         </div>

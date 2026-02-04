@@ -46,7 +46,9 @@ export const getBrightness = createServerFn({ method: 'GET' })
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to get brightness: ${response.statusText}`)
+      throw new Error(
+        `Failed to get brightness: ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
+      )
     }
 
     return response.json() as Promise<BrightnessResponse>
@@ -82,7 +84,9 @@ export const setBrightness = createServerFn({ method: 'POST' })
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to set brightness: ${response.statusText}`)
+      throw new Error(
+        `Failed to set brightness: ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
+      )
     }
   })
 
@@ -105,7 +109,9 @@ export const getConfiguration = createServerFn({ method: 'GET' })
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to get configuration: ${response.statusText}`)
+      throw new Error(
+        `Failed to get configuration: ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
+      )
     }
 
     return response.json() as Promise<ConfigurationResponse>
