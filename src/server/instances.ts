@@ -14,7 +14,7 @@ export const getInstances = createServerFn({ method: 'GET' }).handler(
 )
 
 export const getInstanceById = createServerFn({ method: 'GET' })
-  .validator((id: string) => id)
+  .inputValidator((id: string) => id)
   .handler(async ({ data: id }): Promise<Instance | null> => {
     const result = await db.query.instances.findFirst({
       where: eq(instances.id, id),
@@ -23,7 +23,7 @@ export const getInstanceById = createServerFn({ method: 'GET' })
   })
 
 export const createInstance = createServerFn({ method: 'POST' })
-  .validator((data: { name: string; endpointUrl: string }) => {
+  .inputValidator((data: { name: string; endpointUrl: string }) => {
     const sanitizedName = sanitizeString(data.name)
     const trimmedUrl = data.endpointUrl.trim()
 
@@ -51,7 +51,7 @@ export const createInstance = createServerFn({ method: 'POST' })
   })
 
 export const updateInstance = createServerFn({ method: 'POST' })
-  .validator((data: { id: string; name: string; endpointUrl: string }) => {
+  .inputValidator((data: { id: string; name: string; endpointUrl: string }) => {
     const sanitizedName = sanitizeString(data.name)
     const trimmedUrl = data.endpointUrl.trim()
 
@@ -85,7 +85,7 @@ export const updateInstance = createServerFn({ method: 'POST' })
   })
 
 export const deleteInstance = createServerFn({ method: 'POST' })
-  .validator((id: string) => id)
+  .inputValidator((id: string) => id)
   .handler(async ({ data: id }): Promise<{ success: boolean }> => {
     const result = await db.delete(instances).where(eq(instances.id, id)).returning()
 
