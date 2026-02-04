@@ -1,6 +1,19 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { ReactNode } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { InstanceForm } from '@/components/instance-form'
+import { InstanceList } from '@/components/instance-list'
 import { useInstancesStore } from '@/stores/instances'
+
+// Mock TanStack Router Link component
+vi.mock('@tanstack/react-router', () => ({
+  createFileRoute: () => () => ({}),
+  Link: ({ children, to, className }: { children: ReactNode; to: string; className?: string }) => (
+    <a href={to} className={className}>
+      {children}
+    </a>
+  ),
+}))
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -20,27 +33,6 @@ const localStorageMock = (() => {
 })()
 
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-
-// Mock TanStack Router Link component
-vi.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => () => ({}),
-  Link: ({
-    children,
-    to,
-    className,
-  }: {
-    children: React.ReactNode
-    to: string
-    className?: string
-  }) => (
-    <a href={to} className={className}>
-      {children}
-    </a>
-  ),
-}))
-
-// Import vi for mocking
-import { vi } from 'vitest'
 
 // Extract the Settings component from the route module
 // Since createFileRoute returns a route object, we need to render the actual component
@@ -78,9 +70,6 @@ function SettingsPage() {
     </main>
   )
 }
-
-import { InstanceForm } from '@/components/instance-form'
-import { InstanceList } from '@/components/instance-list'
 
 describe('Settings Route - CRUD Flows', () => {
   beforeEach(() => {
