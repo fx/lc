@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
+import { DisplayStatus } from '@/components/display-status'
 import { ImageUrlForm } from '@/components/image-url-form'
 import { useInstancesStore } from '@/stores/instances'
 
@@ -18,6 +19,7 @@ function Home() {
           <p className="text-muted-foreground">
             Control your LED matrix displays via the led-matrix-zmq-http-bridge API.
           </p>
+          <DisplayStatus />
           <ImageUrlForm />
         </div>
       ) : (
