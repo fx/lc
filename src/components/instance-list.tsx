@@ -40,8 +40,9 @@ export function InstanceList() {
       try {
         await deleteInstanceMutation.mutateAsync(deletingInstance.id)
         setDeletingInstance(null)
-      } catch {
-        // Error is handled by mutation state
+      } catch (error) {
+        // Error is handled by mutation state, but log for debugging
+        console.error('Failed to delete instance:', error)
       }
     }
   }
@@ -101,6 +102,11 @@ export function InstanceList() {
               cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          {deleteInstanceMutation.error && (
+            <p className="text-destructive text-sm">
+              Failed to delete: {deleteInstanceMutation.error.message}
+            </p>
+          )}
           <DialogFooter>
             <Button
               variant="outline"

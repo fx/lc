@@ -2,6 +2,8 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import * as schema from './schema'
 
+// NOTE: This fallback connection string is for local development only.
+// Production deployments MUST set DATABASE_URL with secure credentials.
 const connectionString =
   process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/lc'
 
