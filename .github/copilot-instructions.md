@@ -4,6 +4,7 @@
 
 - **`server.allowedHosts: true` in vite.config.ts** - Intentional for development in remote/containerized environments (Coder workspaces, Codespaces, etc.) where the hostname is dynamic
 - **`server.host: '0.0.0.0'`** - Required for external access in containerized dev environments
+- **Simplified wrapper components in route tests** - Test files may define simplified wrapper components that compose actual components (e.g., `SettingsPage` composing `InstanceForm` and `InstanceList`). This is intentional to test component integration without mocking TanStack Router's `createFileRoute`. Do not flag these as "not testing the actual component"
 
 ## Task Completion Verification
 
