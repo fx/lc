@@ -1,6 +1,6 @@
 'use server'
 
-import sharp from 'sharp'
+import { Jimp } from 'jimp'
 
 interface SendImageResult {
   success: boolean
@@ -12,8 +12,8 @@ interface SendImageResult {
  * Runs entirely on the server to bypass CORS restrictions.
  *
  * 1. Fetches display dimensions from /configuration
- * 2. Fetches and processes the image with sharp
- * 3. Resizes to display dimensions and converts to raw RGBA
+ * 2. Fetches and processes the image with jimp
+ * 3. Resizes to display dimensions and extracts raw RGBA
  * 4. Sends the frame via POST /frame
  */
 export async function sendImageToDisplay(
@@ -36,12 +36,10 @@ export async function sendImageToDisplay(
     }
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
 
-    // 3. Process image with sharp: resize and convert to raw RGBA
-    const rgbaBuffer = await sharp(imageBuffer)
-      .resize(width, height, { fit: 'cover' })
-      .ensureAlpha()
-      .raw()
-      .toBuffer()
+    // 3. Process image with jimp: resize and get raw RGBA bitmap
+    const image = await Jimp.read(imageBuffer)
+    image.cover({ w: width, h: height })
+    const rgbaBuffer = image.bitmap.data
 
     // 4. Send frame to display
     const formData = new FormData()
