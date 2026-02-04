@@ -4,23 +4,23 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
-- [ ] Feature: PostgreSQL + Drizzle Backend
-  - [ ] Add PostgreSQL with Docker Compose
-    - [ ] Create docker-compose.yml with PostgreSQL 16
-    - [ ] Add .env.example with DATABASE_URL
-    - [ ] Update .gitignore for .env
-  - [ ] Set up Drizzle ORM
-    - [ ] Install drizzle-orm, pg, drizzle-kit
-    - [ ] Create drizzle.config.ts
-    - [ ] Add db:push, db:generate, db:migrate, db:studio scripts
-  - [ ] Create instances schema and API
-    - [ ] Define instances table schema (id, name, endpoint, createdAt, updatedAt)
-    - [ ] Create db connection module with connection pooling
-    - [ ] Add server functions: getInstances, createInstance, updateInstance, deleteInstance
-  - [ ] Migrate frontend from localStorage to API
-    - [ ] Update instances store to use TanStack Query with server functions
-    - [ ] Remove localStorage persistence logic
-    - [ ] Add loading/error states for API operations
+- [x] Feature: PostgreSQL + Drizzle Backend (PR #9)
+  - [x] Add PostgreSQL with Docker Compose
+    - [x] Create docker-compose.yml with PostgreSQL 16
+    - [x] Add .env.example with DATABASE_URL
+    - [x] Update .gitignore for .env
+  - [x] Set up Drizzle ORM
+    - [x] Install drizzle-orm, pg, drizzle-kit
+    - [x] Create drizzle.config.ts
+    - [x] Add db:push, db:generate, db:migrate, db:studio scripts
+  - [x] Create instances schema and API
+    - [x] Define instances table schema (id, name, endpoint, createdAt, updatedAt)
+    - [x] Create db connection module with connection pooling
+    - [x] Add server functions: getInstances, createInstance, updateInstance, deleteInstance
+  - [x] Migrate frontend from localStorage to API
+    - [x] Update instances store to use TanStack Query with server functions
+    - [x] Remove localStorage persistence logic
+    - [x] Add loading/error states for API operations
 - [ ] Feature: Image Storage
   - [ ] Create images table schema
     - [ ] Fields: id, contentHash (SHA-256), originalUrl (nullable), mimeType, data (bytea), createdAt
