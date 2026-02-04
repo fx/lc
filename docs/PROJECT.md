@@ -21,10 +21,10 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Add fetch timeout with AbortController to prevent hanging requests
   - [x] Add image size limit check (Content-Length header) before download
   - [x] Add display dimension sanity check (warn if > 256x256)
-- [ ] Feature: Display Status
-  - [ ] Show current brightness and display dimensions from API
-  - [ ] Add brightness slider control via POST /brightness
-  - [ ] Show connection status indicator per instance
+- [x] Feature: Display Status (PR #8)
+  - [x] Show current brightness and display dimensions from API
+  - [x] Add brightness slider control via POST /brightness
+  - [x] Show connection status indicator per instance
 
 ## ZMQ Bridge API
 
