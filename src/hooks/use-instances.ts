@@ -11,9 +11,21 @@ import {
 
 const INSTANCES_KEY = ['instances'] as const
 
+class AppError extends Error {
+  code: string
+  status: number
+
+  constructor(code: string, message: string, status: number) {
+    super(message)
+    this.name = 'AppError'
+    this.code = code
+    this.status = status
+  }
+}
+
 function unwrapResult<T>(result: Result<T>): T {
   if (!result.success) {
-    throw new Error(result.error.message)
+    throw new AppError(result.error.code, result.error.message, result.error.status)
   }
   return result.data
 }
@@ -57,7 +69,7 @@ export function useCreateInstance() {
 
       // Optimistically add the new instance with a temporary ID
       const optimisticInstance: Instance = {
-        id: `temp-${Date.now()}`,
+        id: crypto.randomUUID(),
         name: newInstance.name,
         endpointUrl: newInstance.endpointUrl,
         createdAt: new Date(),
