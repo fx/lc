@@ -101,6 +101,9 @@ export function DisplayStatus() {
     enabled: !!selectedInstance,
   })
 
+  // Track mutation errors
+  const [mutationError, setMutationError] = useState<string | null>(null)
+
   // Mutation for setting brightness
   const brightnessMutation = useMutation({
     mutationFn: (brightness: number) =>
@@ -112,17 +115,25 @@ export function DisplayStatus() {
         },
       }),
     onSuccess: () => {
+      setMutationError(null)
       queryClient.invalidateQueries({ queryKey: ['brightness', instanceId] })
+    },
+    onError: (error) => {
+      setMutationError(error instanceof Error ? error.message : 'Failed to set brightness')
     },
   })
 
-  // Memoized debounced mutation function
+  // Use ref to always have access to latest mutation function
+  const mutationRef = useRef(brightnessMutation)
+  mutationRef.current = brightnessMutation
+
+  // Memoized debounced mutation function - uses ref to avoid stale closure
   const debouncedSetBrightness = useMemo(() => {
     const { debouncedFn, cancel } = debounce((value: number) => {
-      brightnessMutation.mutate(value)
+      mutationRef.current.mutate(value)
     }, DEBOUNCE_DELAY_MS)
     return { debouncedFn, cancel }
-  }, [brightnessMutation])
+  }, [])
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -148,6 +159,7 @@ export function DisplayStatus() {
     (value: number[]) => {
       isDraggingRef.current = true
       setLocalBrightness(value[0])
+      setMutationError(null)
       debouncedSetBrightness.debouncedFn(value[0])
     },
     [debouncedSetBrightness],
@@ -188,7 +200,12 @@ export function DisplayStatus() {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label className="text-muted-foreground">Brightness</Label>
-            <span className="text-sm tabular-nums">{displayBrightness}</span>
+            <div className="flex items-center gap-2">
+              {brightnessMutation.isPending && (
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+              )}
+              <span className="text-sm tabular-nums">{displayBrightness}</span>
+            </div>
           </div>
           <Slider
             value={[displayBrightness]}
@@ -199,6 +216,7 @@ export function DisplayStatus() {
             onValueCommit={handleSliderCommit}
             disabled={!selectedInstance || isLoading}
           />
+          {mutationError && <p className="text-sm text-destructive">{mutationError}</p>}
         </div>
 
         {/* Error display */}
