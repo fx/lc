@@ -4,7 +4,72 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
-- [ ] Feature: Testing Infrastructure
+- [ ] Feature: PostgreSQL + Drizzle Backend
+  - [ ] Add PostgreSQL with Docker Compose
+    - [ ] Create docker-compose.yml with PostgreSQL 16
+    - [ ] Add .env.example with DATABASE_URL
+    - [ ] Update .gitignore for .env
+  - [ ] Set up Drizzle ORM
+    - [ ] Install drizzle-orm, pg, drizzle-kit
+    - [ ] Create drizzle.config.ts
+    - [ ] Add db:push, db:generate, db:migrate, db:studio scripts
+  - [ ] Create instances schema and API
+    - [ ] Define instances table schema (id, name, endpoint, createdAt, updatedAt)
+    - [ ] Create db connection module with connection pooling
+    - [ ] Add server functions: getInstances, createInstance, updateInstance, deleteInstance
+  - [ ] Migrate frontend from localStorage to API
+    - [ ] Update instances store to use TanStack Query with server functions
+    - [ ] Remove localStorage persistence logic
+    - [ ] Add loading/error states for API operations
+- [ ] Feature: Image Storage
+  - [ ] Create images table schema
+    - [ ] Fields: id, contentHash (SHA-256), originalUrl (nullable), mimeType, data (bytea), createdAt
+    - [ ] Unique constraint on contentHash for deduplication
+  - [ ] Add image storage server functions
+    - [ ] storeImage: hash content, check for duplicate, store if new, return image id
+    - [ ] getImage: retrieve by id
+    - [ ] listImages: paginated list with metadata (no data blob)
+  - [ ] Integrate with image URL flow
+    - [ ] After fetching URL, store original image before transformation
+    - [ ] Track sourceUrl for URL-fetched images
+- [ ] Feature: Image Upload
+  - [ ] Add file upload server function
+    - [ ] Accept image file, validate type/size
+    - [ ] Hash and dedupe same as URL flow
+  - [ ] Add upload UI to home page
+    - [ ] File input or drag-and-drop zone
+    - [ ] Show upload progress and success/error states
+- [ ] Feature: Image Gallery
+  - [ ] Generate and store thumbnails
+    - [ ] Add thumbnail column to images table (small JPEG blob)
+    - [ ] Generate thumbnail on image store (e.g., 64x64)
+  - [ ] Build gallery component
+    - [ ] Grid of thumbnail images with lazy loading
+    - [ ] Click to select and send to display
+    - [ ] Show image metadata (source URL if available, date added)
+  - [ ] Add gallery to home page
+    - [ ] Collapsible section showing recent images
+    - [ ] "Send to display" action on each image
+
+## ZMQ Bridge API
+
+Base URL: `http://<host>:4200`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| /brightness | GET | Returns `{ brightness: 0-255 }` |
+| /brightness | POST | Set `{ brightness, transition? }` |
+| /configuration | GET | Returns `{ width, height }` |
+| /temperature | GET/POST | Color temperature 2000-6500K |
+| /frame | POST | Form-data with `frame` field (raw RGBA bytes) |
+| /video/queue | GET/POST/DELETE | Video queue management |
+| /video/skip | POST | Skip current video |
+| /video/repeat | GET/PUT | Repeat mode `{ enabled }` |
+| /video/fit | GET/PUT | Fit mode: cover, contain, stretch |
+
+## Completed
+
+- [x] Feature: Testing Infrastructure (PR #1, #2, #3, #5)
   - [x] Set up Vitest with React Testing Library (PR #1)
   - [x] Add basic smoke tests for ThemeProvider (PR #2)
   - [x] Configure test coverage reporting (PR #3)
@@ -25,25 +90,6 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Show current brightness and display dimensions from API
   - [x] Add brightness slider control via POST /brightness
   - [x] Show connection status indicator per instance
-
-## ZMQ Bridge API
-
-Base URL: `http://<host>:4200`
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /brightness | GET | Returns `{ brightness: 0-255 }` |
-| /brightness | POST | Set `{ brightness, transition? }` |
-| /configuration | GET | Returns `{ width, height }` |
-| /temperature | GET/POST | Color temperature 2000-6500K |
-| /frame | POST | Form-data with `frame` field (raw RGBA bytes) |
-| /video/queue | GET/POST/DELETE | Video queue management |
-| /video/skip | POST | Skip current video |
-| /video/repeat | GET/PUT | Repeat mode `{ enabled }` |
-| /video/fit | GET/PUT | Fit mode: cover, contain, stretch |
-
-## Completed
-
 - [x] Feature: Project Bootstrap (PR #1)
   - [x] Initialize TanStack Start project with Bun, Vite 7, React 19, TanStack Router/Query
   - [x] Configure Tailwind CSS 4 with shadcn/ui (new-york style, neutral base, zero border radius)
