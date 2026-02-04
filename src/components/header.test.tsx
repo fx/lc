@@ -8,10 +8,17 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import { useInstancesStore } from '@/stores/instances'
 import { Header } from './header'
 import { ThemeProvider } from './theme-provider'
+
+// Mock the hooks module
+vi.mock('@/hooks/use-instances', () => ({
+  useInstances: vi.fn(),
+}))
+
+import { useInstances } from '@/hooks/use-instances'
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -82,7 +89,11 @@ function createTestRouter() {
 }
 
 function renderWithProviders() {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  })
   const router = createTestRouter()
   return render(
     <ThemeProvider>
@@ -96,7 +107,12 @@ function renderWithProviders() {
 describe('Header', () => {
   beforeEach(() => {
     localStorageMock.clear()
-    useInstancesStore.setState({ instances: [], selectedId: null })
+    useInstancesStore.setState({ selectedId: null })
+    ;(useInstances as Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    })
   })
 
   it('renders the title', async () => {
@@ -113,23 +129,46 @@ describe('Header', () => {
     })
   })
 
+  it('shows loading state while fetching instances', async () => {
+    ;(useInstances as Mock).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    })
+
+    renderWithProviders()
+    await waitFor(() => {
+      const loadingElements = screen.getAllByText('Loading...')
+      expect(loadingElements.length).toBeGreaterThan(0)
+    })
+  })
+
   it('shows configure instance link when no instances', async () => {
     renderWithProviders()
     await waitFor(() => {
-      // Use getAllByText since the router may render multiple times during hydration
       const links = screen.getAllByText('Configure instance')
       expect(links.length).toBeGreaterThan(0)
     })
   })
 
   it('shows instance selector when instances exist', async () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test Instance', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: [
+        {
+          id: '1',
+          name: 'Test Instance',
+          endpointUrl: 'http://localhost:4200',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
+
     renderWithProviders()
     await waitFor(() => {
-      // Use getAllByText since the router may render multiple times during hydration
       const instances = screen.getAllByText('Test Instance')
       expect(instances.length).toBeGreaterThan(0)
     })

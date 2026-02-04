@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
+import { useEffect } from 'react'
 import {
   Select,
   SelectContent,
@@ -7,15 +8,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getSelectedInstance, useInstancesStore } from '@/stores/instances'
+import { useInstances } from '@/hooks/use-instances'
+import { useInstancesStore } from '@/stores/instances'
 
 export function InstanceSelector() {
-  const instances = useInstancesStore((state) => state.instances)
+  const { data: instances, isLoading } = useInstances()
   const selectedId = useInstancesStore((state) => state.selectedId)
-  const selectInstance = useInstancesStore((state) => state.selectInstance)
-  const selectedInstance = useInstancesStore(getSelectedInstance)
+  const setSelectedId = useInstancesStore((state) => state.setSelectedId)
 
-  if (instances.length === 0) {
+  const selectedInstance = instances?.find((i) => i.id === selectedId)
+
+  // Auto-select first instance if none selected and instances exist
+  useEffect(() => {
+    if (!selectedId && instances && instances.length > 0) {
+      setSelectedId(instances[0].id)
+    }
+    // If selected instance no longer exists, select the first available
+    if (selectedId && instances && instances.length > 0 && !selectedInstance) {
+      setSelectedId(instances[0].id)
+    }
+    // Clear selection if no instances exist
+    if (selectedId && instances && instances.length === 0) {
+      setSelectedId(null)
+    }
+  }, [selectedId, instances, selectedInstance, setSelectedId])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Loading...</span>
+      </div>
+    )
+  }
+
+  if (!instances || instances.length === 0) {
     return (
       <Link
         to="/settings"
@@ -29,7 +55,7 @@ export function InstanceSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={selectedId ?? undefined} onValueChange={selectInstance}>
+      <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="Select instance">
             {selectedInstance?.name ?? 'Select instance'}

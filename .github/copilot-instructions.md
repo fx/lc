@@ -5,6 +5,8 @@
 - **`server.allowedHosts: true` in vite.config.ts** - Intentional for development in remote/containerized environments (Coder workspaces, Codespaces, etc.) where the hostname is dynamic
 - **`server.host: '0.0.0.0'`** - Required for external access in containerized dev environments
 - **Simplified wrapper components in route tests** - Test files may define simplified wrapper components that compose actual components (e.g., `SettingsPage` composing `InstanceForm` and `InstanceList`). This is intentional to test component integration without mocking TanStack Router's `createFileRoute`. Do not flag these as "not testing the actual component"
+- **Manual `updatedAt` in UPDATE operations** - Drizzle's `defaultNow()` only applies on INSERT. Manual setting in UPDATE handlers is the correct pattern to track modification time
+- **React useEffect with multiple dependencies** - Effects that depend on state and callbacks together are not race conditions. React guarantees state consistency within effect execution
 
 ## Task Completion Verification
 

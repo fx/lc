@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import * as sendImageModule from '@/lib/send-image-to-display'
 import { useInstancesStore } from '@/stores/instances'
 import { ImageUrlForm } from './image-url-form'
@@ -10,24 +10,22 @@ vi.mock('@/lib/send-image-to-display', () => ({
   sendImageToDisplay: vi.fn(),
 }))
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
-      store[key] = value
-    },
-    removeItem: (key: string) => {
-      delete store[key]
-    },
-    clear: () => {
-      store = {}
-    },
-  }
-})()
+// Mock useInstances hook
+vi.mock('@/hooks/use-instances', () => ({
+  useInstances: vi.fn(),
+}))
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+import { useInstances } from '@/hooks/use-instances'
+
+const mockInstances = [
+  {
+    id: '1',
+    name: 'Test Display',
+    endpointUrl: 'http://localhost:4200',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -49,9 +47,13 @@ function getForm(container: HTMLElement): HTMLFormElement {
 
 describe('ImageUrlForm', () => {
   beforeEach(() => {
-    localStorageMock.clear()
-    useInstancesStore.setState({ instances: [], selectedId: null })
+    useInstancesStore.setState({ selectedId: null })
     vi.clearAllMocks()
+    ;(useInstances as Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    })
   })
 
   afterEach(() => {
@@ -59,10 +61,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('renders form with URL input and submit button', () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test Display', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -72,10 +76,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('shows selected instance name in card title', () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Living Room', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: [{ ...mockInstances[0], name: 'Living Room' }],
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
 
@@ -83,7 +89,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('shows "No Instance Selected" when no instance selected', () => {
-    useInstancesStore.setState({ instances: [], selectedId: null })
+    ;(useInstances as Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    })
+    useInstancesStore.setState({ selectedId: null })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
 
@@ -91,7 +102,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('disables submit when no instance selected', () => {
-    useInstancesStore.setState({ instances: [], selectedId: null })
+    ;(useInstances as Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    })
+    useInstancesStore.setState({ selectedId: null })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -101,10 +117,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('disables submit when URL is empty', () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -114,10 +132,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('enables submit when instance selected and URL is valid', () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -130,10 +150,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('shows validation error for invalid URL on blur', () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -146,10 +168,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('clears validation error when typing valid URL', () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -167,10 +191,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('shows loading state during mutation', async () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     // Make mutation hang
     vi.mocked(sendImageModule.sendImageToDisplay).mockImplementation(
@@ -192,10 +218,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('shows success message after successful submit', async () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({ success: true })
 
@@ -214,10 +242,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('shows error message on mutation failure', async () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({
       success: false,
@@ -239,10 +269,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('clears form after successful submit', async () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({ success: true })
 
@@ -261,10 +293,12 @@ describe('ImageUrlForm', () => {
   })
 
   it('calls sendImageToDisplay with correct arguments', async () => {
-    useInstancesStore.setState({
-      instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-      selectedId: '1',
+    ;(useInstances as Mock).mockReturnValue({
+      data: mockInstances,
+      isLoading: false,
+      error: null,
     })
+    useInstancesStore.setState({ selectedId: '1' })
 
     vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({ success: true })
 
@@ -289,10 +323,12 @@ describe('ImageUrlForm', () => {
 
   describe('warning display', () => {
     beforeEach(() => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
     })
 
     it('shows warning when result has warning field', async () => {
@@ -387,10 +423,12 @@ describe('ImageUrlForm', () => {
 
   describe('dangerous URL protocol validation', () => {
     beforeEach(() => {
-      useInstancesStore.setState({
-        instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
-        selectedId: '1',
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
       })
+      useInstancesStore.setState({ selectedId: '1' })
     })
 
     it('rejects javascript: URLs', () => {

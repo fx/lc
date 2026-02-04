@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
+import { useInstances } from '@/hooks/use-instances'
 import { getBrightness, getConfiguration, setBrightness } from '@/lib/api'
-import { getSelectedInstance, useInstancesStore } from '@/stores/instances'
+import { useInstancesStore } from '@/stores/instances'
 
 // Polling interval for connection status
 const POLL_INTERVAL_MS = 12000
@@ -67,7 +68,9 @@ function ConnectionIndicator({ isConnected, isFetching }: ConnectionIndicatorPro
 
 export function DisplayStatus() {
   const queryClient = useQueryClient()
-  const selectedInstance = useInstancesStore(getSelectedInstance)
+  const { data: instances } = useInstances()
+  const selectedId = useInstancesStore((state) => state.selectedId)
+  const selectedInstance = instances?.find((i) => i.id === selectedId)
 
   // Extract values for stable references in query functions
   const instanceId = selectedInstance?.id

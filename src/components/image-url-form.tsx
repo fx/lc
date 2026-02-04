@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useInstances } from '@/hooks/use-instances'
 import { sendImageToDisplay } from '@/lib/send-image-to-display'
 import { validateEndpointUrl } from '@/lib/utils'
-import { getSelectedInstance, useInstancesStore } from '@/stores/instances'
+import { useInstancesStore } from '@/stores/instances'
 
 export function ImageUrlForm() {
   const formId = useId()
@@ -15,7 +16,9 @@ export function ImageUrlForm() {
   const [urlError, setUrlError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
 
-  const selectedInstance = useInstancesStore(getSelectedInstance)
+  const { data: instances } = useInstances()
+  const selectedId = useInstancesStore((state) => state.selectedId)
+  const selectedInstance = instances?.find((i) => i.id === selectedId)
 
   const imageUrlId = `${formId}-imageUrl`
   const imageUrlErrorId = `${formId}-imageUrl-error`
