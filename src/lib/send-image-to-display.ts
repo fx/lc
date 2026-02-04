@@ -136,8 +136,8 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
 
       return { success: true, warning }
     } catch (error) {
-      // Handle timeout errors with distinct message
-      if (error instanceof Error && error.name === 'TimeoutError') {
+      // Handle abort errors (including timeouts from AbortSignal.timeout)
+      if (error instanceof Error && error.name === 'AbortError') {
         return {
           success: false,
           error: `Request timed out after ${FETCH_TIMEOUT_MS / 1000} seconds`,

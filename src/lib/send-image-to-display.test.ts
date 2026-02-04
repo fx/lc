@@ -37,7 +37,7 @@ describe('sendImageToDisplay', () => {
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
       const timeoutError = new Error('Timeout')
-      timeoutError.name = 'TimeoutError'
+      timeoutError.name = 'AbortError'
       mockFetch.mockRejectedValueOnce(timeoutError)
 
       const result = await sendImageToDisplay({
@@ -64,7 +64,7 @@ describe('sendImageToDisplay', () => {
 
       // Second call times out (image fetch)
       const timeoutError = new Error('Timeout')
-      timeoutError.name = 'TimeoutError'
+      timeoutError.name = 'AbortError'
       mockFetch.mockRejectedValueOnce(timeoutError)
 
       const result = await sendImageToDisplay({
@@ -109,7 +109,7 @@ describe('sendImageToDisplay', () => {
 
       // Frame post times out
       const timeoutError = new Error('Timeout')
-      timeoutError.name = 'TimeoutError'
+      timeoutError.name = 'AbortError'
       mockFetch.mockRejectedValueOnce(timeoutError)
 
       const result = await sendImageToDisplay({
