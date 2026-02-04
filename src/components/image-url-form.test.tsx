@@ -1,15 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as imageProcessing from '@/lib/image-processing'
+import * as sendImageModule from '@/lib/send-image-to-display'
 import { useInstancesStore } from '@/stores/instances'
 import { ImageUrlForm } from './image-url-form'
 
-// Mock image processing module
-vi.mock('@/lib/image-processing', () => ({
-  fetchConfiguration: vi.fn(),
-  processImageToRgba: vi.fn(),
-  sendFrame: vi.fn(),
+// Mock the server function
+vi.mock('@/lib/send-image-to-display', () => ({
+  sendImageToDisplay: vi.fn(),
 }))
 
 // Mock localStorage
@@ -175,7 +173,7 @@ describe('ImageUrlForm', () => {
     })
 
     // Make mutation hang
-    vi.mocked(imageProcessing.fetchConfiguration).mockImplementation(
+    vi.mocked(sendImageModule.sendImageToDisplay).mockImplementation(
       () => new Promise(() => {}), // Never resolves
     )
 
@@ -199,9 +197,7 @@ describe('ImageUrlForm', () => {
       selectedId: '1',
     })
 
-    vi.mocked(imageProcessing.fetchConfiguration).mockResolvedValue({ width: 64, height: 32 })
-    vi.mocked(imageProcessing.processImageToRgba).mockResolvedValue(new Uint8Array(64 * 32 * 4))
-    vi.mocked(imageProcessing.sendFrame).mockResolvedValue(undefined)
+    vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({ success: true })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -223,9 +219,10 @@ describe('ImageUrlForm', () => {
       selectedId: '1',
     })
 
-    vi.mocked(imageProcessing.fetchConfiguration).mockRejectedValue(
-      new Error('Failed to fetch configuration: 500'),
-    )
+    vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({
+      success: false,
+      error: 'Failed to fetch image: 404',
+    })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -237,7 +234,7 @@ describe('ImageUrlForm', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(container.textContent).toContain('Failed to fetch configuration: 500')
+      expect(container.textContent).toContain('Failed to fetch image: 404')
     })
   })
 
@@ -247,9 +244,7 @@ describe('ImageUrlForm', () => {
       selectedId: '1',
     })
 
-    vi.mocked(imageProcessing.fetchConfiguration).mockResolvedValue({ width: 64, height: 32 })
-    vi.mocked(imageProcessing.processImageToRgba).mockResolvedValue(new Uint8Array(64 * 32 * 4))
-    vi.mocked(imageProcessing.sendFrame).mockResolvedValue(undefined)
+    vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({ success: true })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -265,15 +260,13 @@ describe('ImageUrlForm', () => {
     })
   })
 
-  it('calls image processing functions with correct arguments', async () => {
+  it('calls sendImageToDisplay with correct arguments', async () => {
     useInstancesStore.setState({
       instances: [{ id: '1', name: 'Test', endpointUrl: 'http://localhost:4200' }],
       selectedId: '1',
     })
 
-    vi.mocked(imageProcessing.fetchConfiguration).mockResolvedValue({ width: 128, height: 64 })
-    vi.mocked(imageProcessing.processImageToRgba).mockResolvedValue(new Uint8Array(128 * 64 * 4))
-    vi.mocked(imageProcessing.sendFrame).mockResolvedValue(undefined)
+    vi.mocked(sendImageModule.sendImageToDisplay).mockResolvedValue({ success: true })
 
     const { container } = render(<ImageUrlForm />, { wrapper: createWrapper() })
     const form = getForm(container)
@@ -285,15 +278,9 @@ describe('ImageUrlForm', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(imageProcessing.fetchConfiguration).toHaveBeenCalledWith('http://localhost:4200')
-      expect(imageProcessing.processImageToRgba).toHaveBeenCalledWith(
+      expect(sendImageModule.sendImageToDisplay).toHaveBeenCalledWith(
         'https://example.com/test.png',
-        128,
-        64,
-      )
-      expect(imageProcessing.sendFrame).toHaveBeenCalledWith(
         'http://localhost:4200',
-        expect.any(Uint8Array),
       )
     })
   })

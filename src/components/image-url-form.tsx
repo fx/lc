@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchConfiguration, processImageToRgba, sendFrame } from '@/lib/image-processing'
+import { sendImageToDisplay } from '@/lib/send-image-to-display'
 import { getSelectedInstance, useInstancesStore } from '@/stores/instances'
 
 export function ImageUrlForm() {
@@ -23,16 +23,11 @@ export function ImageUrlForm() {
       if (!selectedInstance) {
         throw new Error('No instance selected')
       }
-      const { endpointUrl } = selectedInstance
 
-      // Step 1: Fetch display dimensions
-      const { width, height } = await fetchConfiguration(endpointUrl)
-
-      // Step 2: Process image to RGBA
-      const rgbaData = await processImageToRgba(url, width, height)
-
-      // Step 3: Send frame
-      await sendFrame(endpointUrl, rgbaData)
+      const result = await sendImageToDisplay(url, selectedInstance.endpointUrl)
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send image')
+      }
     },
     onSuccess: () => {
       setImageUrl('')
