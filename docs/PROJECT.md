@@ -21,13 +21,13 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
     - [x] Update instances store to use TanStack Query with server functions
     - [x] Remove localStorage persistence logic
     - [x] Add loading/error states for API operations
-- [ ] Feature: Database Improvements
-  - [ ] Add index on instances.createdAt for query performance
-  - [ ] Add database connection reconnection logic
-  - [ ] Add try-catch error handling in server functions with user-friendly messages
-  - [ ] Consider typed errors for HTTP-aware status codes (404 Not Found)
-  - [ ] Add TanStack Query optimistic updates for mutations
-  - [ ] Generate and commit initial Drizzle migrations for production
+- [x] Feature: Database Improvements (PR #10)
+  - [x] Add index on instances.createdAt for query performance
+  - [x] Add database connection reconnection logic
+  - [x] Add try-catch error handling in server functions with user-friendly messages
+  - [x] Consider typed errors for HTTP-aware status codes (404 Not Found)
+  - [x] Add TanStack Query optimistic updates for mutations
+  - [x] Generate and commit initial Drizzle migrations for production
 - [ ] Feature: Image Storage
   - [ ] Create images table schema
     - [ ] Fields: id, contentHash (SHA-256), originalUrl (nullable), mimeType, data (bytea), createdAt
