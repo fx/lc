@@ -74,9 +74,26 @@ export async function storeImageCore(
   }
 }
 
+// Maximum image size for client uploads (10MB)
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+
 // Server function wrapper for client-side calls
 export const storeImage = createServerFn({ method: 'POST' })
-  .inputValidator((data: { data: number[]; mimeType: string; originalUrl?: string }) => data)
+  .inputValidator((data: { data: number[]; mimeType: string; originalUrl?: string }) => {
+    if (!data || !Array.isArray(data.data) || data.data.length === 0) {
+      throw new Error('Image data must be a non-empty array')
+    }
+    if (data.data.length > MAX_IMAGE_BYTES) {
+      throw new Error(`Image data exceeds ${MAX_IMAGE_BYTES / 1024 / 1024}MB limit`)
+    }
+    if (typeof data.mimeType !== 'string' || !/^(image|application)\//.test(data.mimeType)) {
+      throw new Error('Invalid or unsupported mimeType')
+    }
+    if (data.originalUrl != null && typeof data.originalUrl !== 'string') {
+      throw new Error('Invalid originalUrl')
+    }
+    return data
+  })
   .handler(async ({ data: input }): Promise<Result<StoreImageResult>> => {
     const buffer = Buffer.from(input.data)
     return storeImageCore(buffer, input.mimeType, input.originalUrl)
@@ -122,12 +139,17 @@ export const getImage = createServerFn({ method: 'GET' })
     },
   )
 
+const MAX_LIST_LIMIT = 100
+
 export const listImages = createServerFn({ method: 'GET' })
   .inputValidator((params?: { limit?: number; offset?: number }) => params ?? {})
   .handler(async ({ data: params }): Promise<Result<ImageMetadata[]>> => {
     try {
-      const limit = params.limit ?? 20
-      const offset = params.offset ?? 0
+      // Validate and clamp limit/offset to prevent abuse
+      const rawLimit = params.limit ?? 20
+      const rawOffset = params.offset ?? 0
+      const limit = Math.min(MAX_LIST_LIMIT, Math.max(1, Math.floor(rawLimit)))
+      const offset = Math.max(0, Math.floor(rawOffset))
 
       const result = await withRetry(() =>
         db.query.images.findMany({

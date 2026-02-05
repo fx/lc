@@ -94,12 +94,11 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
 
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
 
-      // 2b. Store image for later retrieval (non-blocking, don't fail on error)
+      // 2b. Store image for later retrieval (failures logged but don't fail the request)
       const mimeType = imageResponse.headers.get('Content-Type') ?? 'application/octet-stream'
-      try {
-        await storeImageCore(imageBuffer, mimeType, imageUrl)
-      } catch (storeError) {
-        console.warn('[sendImageToDisplay] Failed to store image:', storeError)
+      const storeResult = await storeImageCore(imageBuffer, mimeType, imageUrl)
+      if (!storeResult.success) {
+        console.warn('[sendImageToDisplay] Failed to store image:', storeResult.error.message)
       }
 
       // 3. Process image with jimp: resize and get raw RGBA bitmap
