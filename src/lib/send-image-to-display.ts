@@ -1,10 +1,16 @@
 import { createServerFn } from '@tanstack/react-start'
 import { Jimp } from 'jimp'
-import { storeImageCore } from '@/server/images'
+import { ALLOWED_MIME_TYPES, storeImageCore } from '@/server/images'
 import { validateEndpointUrl } from './utils'
 
 interface SendImageInput {
   imageUrl: string
+  endpointUrl: string
+}
+
+interface SendUploadedImageInput {
+  imageData: number[]
+  mimeType: string
   endpointUrl: string
 }
 
@@ -132,6 +138,112 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
       return { success: true }
     } catch (error) {
       // Handle abort errors (including timeouts from AbortSignal.timeout)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          error: `Request timed out after ${FETCH_TIMEOUT_MS / 1000} seconds`,
+        }
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  })
+
+/**
+ * Server function to send an uploaded image to the LED matrix display.
+ * Takes raw image data instead of a URL.
+ */
+export const sendUploadedImageToDisplay = createServerFn({ method: 'POST' })
+  .inputValidator((input: SendUploadedImageInput) => {
+    if (!input.imageData || !Array.isArray(input.imageData) || input.imageData.length === 0) {
+      throw new Error('Image data must be a non-empty array')
+    }
+    if (input.imageData.length > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error(`Image data exceeds ${MAX_IMAGE_SIZE_BYTES / 1024 / 1024}MB limit`)
+    }
+    if (!ALLOWED_MIME_TYPES.includes(input.mimeType as (typeof ALLOWED_MIME_TYPES)[number])) {
+      throw new Error(
+        `Unsupported image type: ${input.mimeType}. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      )
+    }
+    const endpointValidation = validateEndpointUrl(input.endpointUrl)
+    if (!endpointValidation.valid) {
+      throw new Error(`Invalid endpoint URL: ${endpointValidation.error}`)
+    }
+    return input
+  })
+  .handler(async ({ data }): Promise<SendImageResult> => {
+    const { imageData, mimeType, endpointUrl } = data
+    const baseUrl = endpointUrl.replace(/\/+$/, '')
+    const imageBuffer = Buffer.from(imageData)
+
+    try {
+      // 1. Get display configuration
+      const configResponse = await fetch(`${baseUrl}/configuration`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+      if (!configResponse.ok) {
+        return { success: false, error: `Failed to get display config: ${configResponse.status}` }
+      }
+      const config = (await configResponse.json()) as { width: number; height: number }
+      const { width, height } = config
+
+      // Validate configuration dimensions
+      if (
+        !Number.isInteger(width) ||
+        !Number.isInteger(height) ||
+        width < MIN_DIMENSION ||
+        width > MAX_DIMENSION ||
+        height < MIN_DIMENSION ||
+        height > MAX_DIMENSION
+      ) {
+        return {
+          success: false,
+          error: `Invalid display dimensions: width=${width}, height=${height}. Expected integers between ${MIN_DIMENSION} and ${MAX_DIMENSION}.`,
+        }
+      }
+
+      // 2. Store image for later retrieval (failures logged but don't fail the request)
+      const storeResult = await storeImageCore(imageBuffer, mimeType)
+      if (!storeResult.success) {
+        console.warn(
+          '[sendUploadedImageToDisplay] Failed to store image:',
+          storeResult.error.message,
+        )
+      }
+
+      // 3. Process image with jimp: resize and get raw RGBA bitmap
+      const image = await Jimp.read(imageBuffer)
+      const resized = image.cover({ w: width, h: height })
+      const rgbaBuffer = resized.bitmap.data
+
+      // Validate frame size (width * height * 4 bytes per pixel)
+      const expectedSize = width * height * 4
+      if (rgbaBuffer.length !== expectedSize) {
+        return {
+          success: false,
+          error: `Frame size mismatch: got ${rgbaBuffer.length} bytes, expected ${expectedSize} (${width}x${height}x4)`,
+        }
+      }
+
+      // 4. Send frame to display
+      const formData = new FormData()
+      formData.append('frame', new Blob([rgbaBuffer]))
+
+      const frameResponse = await fetch(`${baseUrl}/frame`, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+
+      if (!frameResponse.ok) {
+        return { success: false, error: `Failed to send frame: ${frameResponse.status}` }
+      }
+
+      return { success: true }
+    } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         return {
           success: false,

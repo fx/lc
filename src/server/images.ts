@@ -77,6 +77,15 @@ export async function storeImageCore(
 // Maximum image size for client uploads (10MB)
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
+// Allowed MIME types for direct uploads
+export const ALLOWED_MIME_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+] as const
+
 // Server function wrapper for client-side calls
 export const storeImage = createServerFn({ method: 'POST' })
   .inputValidator((data: { data: number[]; mimeType: string; originalUrl?: string }) => {
@@ -97,6 +106,27 @@ export const storeImage = createServerFn({ method: 'POST' })
   .handler(async ({ data: input }): Promise<Result<StoreImageResult>> => {
     const buffer = Buffer.from(input.data)
     return storeImageCore(buffer, input.mimeType, input.originalUrl)
+  })
+
+// Upload image from client (no source URL)
+export const uploadImage = createServerFn({ method: 'POST' })
+  .inputValidator((data: { data: number[]; mimeType: string }) => {
+    if (!data || !Array.isArray(data.data) || data.data.length === 0) {
+      throw new Error('Image data must be a non-empty array')
+    }
+    if (data.data.length > MAX_IMAGE_BYTES) {
+      throw new Error(`Image data exceeds ${MAX_IMAGE_BYTES / 1024 / 1024}MB limit`)
+    }
+    if (!ALLOWED_MIME_TYPES.includes(data.mimeType as (typeof ALLOWED_MIME_TYPES)[number])) {
+      throw new Error(
+        `Unsupported image type: ${data.mimeType}. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      )
+    }
+    return data
+  })
+  .handler(async ({ data: input }): Promise<Result<StoreImageResult>> => {
+    const buffer = Buffer.from(input.data)
+    return storeImageCore(buffer, input.mimeType)
   })
 
 export const getImage = createServerFn({ method: 'GET' })
