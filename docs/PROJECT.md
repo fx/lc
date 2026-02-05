@@ -16,22 +16,22 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
     - [x] useVideoQueue: query for queue state with polling
     - [x] useAddVideo, useClearQueue, useSkipVideo mutations
     - [x] useSetRepeatMode, useSetFitMode toggle mutations
-- [ ] Feature: Video Queue UI
-  - [ ] Build VideoUrlForm component
-    - [ ] URL input with YouTube/direct video validation
-    - [ ] Submit button with loading state
-    - [ ] Success/error feedback
-  - [ ] Build VideoQueuePanel component
-    - [ ] Show current playing video (if any)
-    - [ ] List queued videos with status badges
-    - [ ] Clear queue button
-    - [ ] Skip button (when video playing)
-  - [ ] Build VideoControls component
-    - [ ] Repeat mode toggle
-    - [ ] Fit mode selector (cover/contain/stretch)
-  - [ ] Add video section to home page
-    - [ ] Collapsible section like image gallery
-    - [ ] Include VideoUrlForm, VideoQueuePanel, VideoControls
+- [x] Feature: Video Queue UI (PR #15)
+  - [x] Build VideoUrlForm component
+    - [x] URL input with YouTube/direct video validation
+    - [x] Submit button with loading state
+    - [x] Success/error feedback
+  - [x] Build VideoQueuePanel component
+    - [x] Show current playing video (if any)
+    - [x] List queued videos with status badges
+    - [x] Clear queue button
+    - [x] Skip button (when video playing)
+  - [x] Build VideoControls component
+    - [x] Repeat mode toggle
+    - [x] Fit mode selector (cover/contain/stretch)
+  - [x] Add video section to home page
+    - [x] Collapsible section like image gallery
+    - [x] Include VideoUrlForm, VideoQueuePanel, VideoControls
 
 - [x] Feature: PostgreSQL + Drizzle Backend (PR #9)
   - [x] Add PostgreSQL with Docker Compose
