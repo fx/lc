@@ -1,10 +1,4 @@
-import { createHash } from 'node:crypto'
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-import { Jimp } from 'jimp'
-import { db, withRetry } from '@/db'
-import { handleDbError } from '@/db/errors'
-import { images } from '@/db/schema'
 import { MAX_UPLOAD_SIZE_BYTES } from '@/lib/image-constants'
 import { err, ok, type Result } from '@/lib/types'
 
@@ -14,9 +8,11 @@ const THUMBNAIL_QUALITY = 80
 /**
  * Generate a 64x64 JPEG thumbnail from an image buffer.
  * Returns null on failure (never throws).
+ * Uses dynamic imports to keep Node.js deps out of client bundle.
  */
 async function generateThumbnail(buffer: Buffer): Promise<Buffer | null> {
   try {
+    const { Jimp } = await import('jimp')
     const image = await Jimp.read(buffer)
     // Cover crop to 64x64
     image.cover({ w: THUMBNAIL_SIZE, h: THUMBNAIL_SIZE })
@@ -43,11 +39,18 @@ interface ImageMetadata {
 }
 
 // Core function for server-side use (can be called directly from other server functions)
+// Uses dynamic imports to keep Node.js deps out of client bundle.
 export async function storeImageCore(
   buffer: Buffer,
   mimeType: string,
   originalUrl?: string,
 ): Promise<Result<StoreImageResult>> {
+  const { createHash } = await import('node:crypto')
+  const { eq } = await import('drizzle-orm')
+  const { db, withRetry } = await import('@/db')
+  const { handleDbError } = await import('@/db/errors')
+  const { images } = await import('@/db/schema')
+
   try {
     const contentHash = createHash('sha256').update(buffer).digest('hex')
 
@@ -119,7 +122,7 @@ export const storeImage = createServerFn({ method: 'POST' })
     return data
   })
   .handler(async ({ data: input }): Promise<Result<StoreImageResult>> => {
-    const buffer = Buffer.from(input.data)
+    const buffer = Buffer.from(input.data as number[])
     return storeImageCore(buffer, input.mimeType, input.originalUrl)
   })
 
@@ -138,6 +141,11 @@ export const getImage = createServerFn({ method: 'GET' })
         createdAt: Date
       } | null>
     > => {
+      const { eq } = await import('drizzle-orm')
+      const { db, withRetry } = await import('@/db')
+      const { handleDbError } = await import('@/db/errors')
+      const { images } = await import('@/db/schema')
+
       try {
         const result = await withRetry(() =>
           db.query.images.findFirst({
@@ -168,6 +176,9 @@ const MAX_LIST_LIMIT = 100
 export const listImages = createServerFn({ method: 'GET' })
   .inputValidator((params?: { limit?: number; offset?: number }) => params ?? {})
   .handler(async ({ data: params }): Promise<Result<ImageMetadata[]>> => {
+    const { db, withRetry } = await import('@/db')
+    const { handleDbError } = await import('@/db/errors')
+
     try {
       // Validate and clamp limit/offset to prevent abuse
       const rawLimit = params.limit ?? 20
@@ -210,6 +221,11 @@ export const listImages = createServerFn({ method: 'GET' })
 export const getThumbnail = createServerFn({ method: 'GET' })
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }): Promise<Result<{ thumbnail: number[] | null }>> => {
+    const { eq } = await import('drizzle-orm')
+    const { db, withRetry } = await import('@/db')
+    const { handleDbError } = await import('@/db/errors')
+    const { images } = await import('@/db/schema')
+
     try {
       // First, check if thumbnail exists
       const result = await withRetry(() =>

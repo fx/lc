@@ -1,8 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-import { Jimp } from 'jimp'
-import { db, withRetry } from '@/db'
-import { images } from '@/db/schema'
 import { validateEndpointUrl } from '@/lib/utils'
 
 interface SendStoredImageInput {
@@ -38,6 +34,11 @@ export const sendStoredImageToDisplay = createServerFn({ method: 'POST' })
     return input
   })
   .handler(async ({ data }): Promise<SendImageResult> => {
+    const { eq } = await import('drizzle-orm')
+    const { Jimp } = await import('jimp')
+    const { db, withRetry } = await import('@/db')
+    const { images } = await import('@/db/schema')
+
     const { imageId, endpointUrl } = data
     const baseUrl = endpointUrl.replace(/\/+$/, '')
 
