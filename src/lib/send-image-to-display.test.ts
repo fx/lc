@@ -7,6 +7,14 @@ vi.mock('jimp', () => ({
   },
 }))
 
+// Mock storeImageCore to avoid database calls
+vi.mock('@/server/images', () => ({
+  ALLOWED_MIME_TYPES: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'],
+  storeImageCore: vi
+    .fn()
+    .mockResolvedValue({ success: true, data: { id: 'test-id', isNew: true } }),
+}))
+
 // Mock createServerFn to return the handler directly for testing
 vi.mock('@tanstack/react-start', () => ({
   createServerFn: () => ({
@@ -32,10 +40,11 @@ describe('sendImageToDisplay', () => {
   })
 
   describe('timeout handling', () => {
-    it('returns timeout error when configuration fetch times out', async () => {
+    it('returns timeout error when image fetch times out', async () => {
       // Import fresh module for each test
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
+      // Image fetch times out (first call)
       const timeoutError = new Error('Timeout')
       timeoutError.name = 'AbortError'
       mockFetch.mockRejectedValueOnce(timeoutError)
@@ -53,16 +62,17 @@ describe('sendImageToDisplay', () => {
       })
     })
 
-    it('returns timeout error when image fetch times out', async () => {
+    it('returns timeout error when configuration fetch times out', async () => {
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
-      // First call succeeds (configuration)
+      // Image fetch succeeds (first call)
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ width: 64, height: 64 }),
+        headers: new Headers({ 'Content-Length': '1000' }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(1000)),
       })
 
-      // Second call times out (image fetch)
+      // Configuration fetch times out (second call, inside processAndSendToDisplay)
       const timeoutError = new Error('Timeout')
       timeoutError.name = 'AbortError'
       mockFetch.mockRejectedValueOnce(timeoutError)
@@ -84,17 +94,17 @@ describe('sendImageToDisplay', () => {
       const { Jimp } = await import('jimp')
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
-      // Configuration fetch succeeds
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ width: 64, height: 64 }),
-      })
-
-      // Image fetch succeeds
+      // Image fetch succeeds (first call)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ 'Content-Length': '1000' }),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(1000)),
+      })
+
+      // Configuration fetch succeeds (second call)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ width: 64, height: 64 }),
       })
 
       // Mock Jimp.read to return a mock image
@@ -107,7 +117,7 @@ describe('sendImageToDisplay', () => {
         }),
       } as never)
 
-      // Frame post times out
+      // Frame post times out (third call)
       const timeoutError = new Error('Timeout')
       timeoutError.name = 'AbortError'
       mockFetch.mockRejectedValueOnce(timeoutError)
@@ -128,6 +138,7 @@ describe('sendImageToDisplay', () => {
     it('passes AbortSignal.timeout to all fetch calls', async () => {
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
+      // Image fetch fails (first call)
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -140,9 +151,9 @@ describe('sendImageToDisplay', () => {
         },
       })
 
-      // Verify the first fetch was called with a signal
+      // Verify the first fetch (image fetch) was called with a signal
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:4200/configuration',
+        'https://example.com/image.png',
         expect.objectContaining({
           signal: expect.any(AbortSignal),
         }),
@@ -154,13 +165,7 @@ describe('sendImageToDisplay', () => {
     it('rejects images exceeding 50MB based on Content-Length', async () => {
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
-      // Configuration fetch succeeds
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ width: 64, height: 64 }),
-      })
-
-      // Image fetch returns large Content-Length
+      // Image fetch returns large Content-Length (first call)
       const largeSize = 60 * 1024 * 1024 // 60MB
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -185,18 +190,18 @@ describe('sendImageToDisplay', () => {
       const { Jimp } = await import('jimp')
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
-      // Configuration fetch succeeds
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ width: 64, height: 64 }),
-      })
-
-      // Image fetch returns acceptable Content-Length
+      // Image fetch returns acceptable Content-Length (first call)
       const acceptableSize = 10 * 1024 * 1024 // 10MB
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ 'Content-Length': String(acceptableSize) }),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(1000)),
+      })
+
+      // Configuration fetch succeeds (second call)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ width: 64, height: 64 }),
       })
 
       // Mock Jimp.read
@@ -209,7 +214,7 @@ describe('sendImageToDisplay', () => {
         }),
       } as never)
 
-      // Frame post succeeds
+      // Frame post succeeds (third call)
       mockFetch.mockResolvedValueOnce({
         ok: true,
       })
@@ -228,17 +233,17 @@ describe('sendImageToDisplay', () => {
       const { Jimp } = await import('jimp')
       const { sendImageToDisplay } = await import('./send-image-to-display')
 
-      // Configuration fetch succeeds
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ width: 64, height: 64 }),
-      })
-
-      // Image fetch without Content-Length header
+      // Image fetch without Content-Length header (first call)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({}),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(1000)),
+      })
+
+      // Configuration fetch succeeds (second call)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ width: 64, height: 64 }),
       })
 
       // Mock Jimp.read
@@ -251,7 +256,7 @@ describe('sendImageToDisplay', () => {
         }),
       } as never)
 
-      // Frame post succeeds
+      // Frame post succeeds (third call)
       mockFetch.mockResolvedValueOnce({
         ok: true,
       })
