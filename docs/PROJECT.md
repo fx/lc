@@ -46,17 +46,17 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Add upload UI to home page
     - [x] File input or drag-and-drop zone
     - [x] Show upload progress and success/error states
-- [ ] Feature: Image Gallery
-  - [ ] Generate and store thumbnails
-    - [ ] Add thumbnail column to images table (small JPEG blob)
-    - [ ] Generate thumbnail on image store (e.g., 64x64)
-  - [ ] Build gallery component
-    - [ ] Grid of thumbnail images with lazy loading
-    - [ ] Click to select and send to display
-    - [ ] Show image metadata (source URL if available, date added)
-  - [ ] Add gallery to home page
-    - [ ] Collapsible section showing recent images
-    - [ ] "Send to display" action on each image
+- [x] Feature: Image Gallery (PR #13)
+  - [x] Generate and store thumbnails
+    - [x] Add thumbnail column to images table (small JPEG blob)
+    - [x] Generate thumbnail on image store (e.g., 64x64)
+  - [x] Build gallery component
+    - [x] Grid of thumbnail images with lazy loading
+    - [x] Click to select and send to display
+    - [x] Show image metadata (source URL if available, date added)
+  - [x] Add gallery to home page
+    - [x] Collapsible section showing recent images
+    - [x] "Send to display" action on each image
 
 ## ZMQ Bridge API
 
