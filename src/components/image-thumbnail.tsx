@@ -1,0 +1,132 @@
+import { CheckCircle2, Loader2, Send, XCircle } from 'lucide-react'
+import { useMemo } from 'react'
+import { Button } from '@/components/ui/button'
+import { useImageThumbnail } from '@/hooks/use-images'
+import { cn } from '@/lib/utils'
+
+interface ImageMetadata {
+  id: string
+  contentHash: string
+  originalUrl: string | null
+  mimeType: string
+  createdAt: Date
+  hasThumbnail: boolean
+}
+
+interface ImageThumbnailProps {
+  image: ImageMetadata
+  onSend: () => void
+  isSending: boolean
+  sendSuccess: boolean
+  sendError: string | null
+}
+
+function formatRelativeTime(date: Date): string {
+  const now = new Date()
+  const diff = now.getTime() - new Date(date).getTime()
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days}d ago`
+  if (hours > 0) return `${hours}h ago`
+  if (minutes > 0) return `${minutes}m ago`
+  return 'just now'
+}
+
+function truncateUrl(url: string, maxLength = 20): string {
+  if (url.length <= maxLength) return url
+  // Remove protocol
+  const withoutProtocol = url.replace(/^https?:\/\//, '')
+  if (withoutProtocol.length <= maxLength) return withoutProtocol
+  return `${withoutProtocol.substring(0, maxLength)}...`
+}
+
+export function ImageThumbnail({
+  image,
+  onSend,
+  isSending,
+  sendSuccess,
+  sendError,
+}: ImageThumbnailProps) {
+  const { data: thumbnailData, isLoading: thumbnailLoading } = useImageThumbnail(image.id)
+
+  // Convert thumbnail bytes to data URL
+  const thumbnailSrc = useMemo(() => {
+    if (!thumbnailData?.thumbnail) return null
+    const bytes = new Uint8Array(thumbnailData.thumbnail)
+    const blob = new Blob([bytes], { type: 'image/jpeg' })
+    return URL.createObjectURL(blob)
+  }, [thumbnailData])
+
+  return (
+    <div className="group relative flex flex-col gap-1">
+      {/* Thumbnail container - square aspect ratio */}
+      <div className="relative aspect-square w-full overflow-hidden border bg-muted">
+        {thumbnailLoading ? (
+          <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : thumbnailSrc ? (
+          <img
+            src={thumbnailSrc}
+            alt={image.originalUrl ? `Thumbnail of ${image.originalUrl}` : 'Image thumbnail'}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
+            No preview
+          </div>
+        )}
+
+        {/* Send button overlay */}
+        <div
+          className={cn(
+            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity',
+            'group-hover:opacity-100',
+            isSending && 'opacity-100',
+          )}
+        >
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={onSend}
+            disabled={isSending}
+            className="h-8 w-8 p-0"
+            title="Send to display"
+          >
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        {/* Success/error indicators */}
+        {sendSuccess && (
+          <div className="absolute bottom-1 right-1">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </div>
+        )}
+        {sendError && (
+          <div className="absolute bottom-1 right-1" title={sendError}>
+            <XCircle className="h-4 w-4 text-destructive" />
+          </div>
+        )}
+      </div>
+
+      {/* Metadata */}
+      <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+        {image.originalUrl && (
+          <span className="truncate" title={image.originalUrl}>
+            {truncateUrl(image.originalUrl)}
+          </span>
+        )}
+        <span>{formatRelativeTime(image.createdAt)}</span>
+      </div>
+    </div>
+  )
+}
