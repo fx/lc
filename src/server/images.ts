@@ -1,11 +1,32 @@
 import { createHash } from 'node:crypto'
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
+import { Jimp } from 'jimp'
 import { db, withRetry } from '@/db'
 import { handleDbError } from '@/db/errors'
 import { images } from '@/db/schema'
 import { MAX_UPLOAD_SIZE_BYTES } from '@/lib/image-constants'
 import { err, ok, type Result } from '@/lib/types'
+
+const THUMBNAIL_SIZE = 64
+const THUMBNAIL_QUALITY = 80
+
+/**
+ * Generate a 64x64 JPEG thumbnail from an image buffer.
+ * Returns null on failure (never throws).
+ */
+async function generateThumbnail(buffer: Buffer): Promise<Buffer | null> {
+  try {
+    const image = await Jimp.read(buffer)
+    // Cover crop to 64x64
+    image.cover({ w: THUMBNAIL_SIZE, h: THUMBNAIL_SIZE })
+    // Export as JPEG with quality 80
+    const jpegBuffer = await image.getBuffer('image/jpeg', { quality: THUMBNAIL_QUALITY })
+    return Buffer.from(jpegBuffer)
+  } catch {
+    return null
+  }
+}
 
 interface StoreImageResult {
   id: string
@@ -18,6 +39,7 @@ interface ImageMetadata {
   originalUrl: string | null
   mimeType: string
   createdAt: Date
+  hasThumbnail: boolean
 }
 
 // Core function for server-side use (can be called directly from other server functions)
@@ -41,6 +63,9 @@ export async function storeImageCore(
       return ok({ id: existing.id, isNew: false })
     }
 
+    // Generate thumbnail (non-blocking, continue on failure)
+    const thumbnail = await generateThumbnail(buffer)
+
     // Insert new image
     const [inserted] = await withRetry(() =>
       db
@@ -50,6 +75,7 @@ export async function storeImageCore(
           originalUrl,
           mimeType,
           data: buffer,
+          thumbnail,
         })
         .onConflictDoNothing({ target: images.contentHash })
         .returning({ id: images.id }),
@@ -157,6 +183,7 @@ export const listImages = createServerFn({ method: 'GET' })
             originalUrl: true,
             mimeType: true,
             createdAt: true,
+            thumbnail: true,
           },
           orderBy: (images, { desc }) => [desc(images.createdAt)],
           limit,
@@ -164,8 +191,55 @@ export const listImages = createServerFn({ method: 'GET' })
         }),
       )
 
-      return ok(result)
+      // Transform to metadata with hasThumbnail flag (don't send blob)
+      const metadata: ImageMetadata[] = result.map((row) => ({
+        id: row.id,
+        contentHash: row.contentHash,
+        originalUrl: row.originalUrl,
+        mimeType: row.mimeType,
+        createdAt: row.createdAt,
+        hasThumbnail: row.thumbnail !== null,
+      }))
+
+      return ok(metadata)
     } catch (error) {
       return handleDbError(error, 'listImages')
+    }
+  })
+
+export const getThumbnail = createServerFn({ method: 'GET' })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }): Promise<Result<{ thumbnail: number[] | null }>> => {
+    try {
+      // First, check if thumbnail exists
+      const result = await withRetry(() =>
+        db.query.images.findFirst({
+          where: eq(images.id, id),
+          columns: { id: true, thumbnail: true, data: true },
+        }),
+      )
+
+      if (!result) {
+        return err('NOT_FOUND', 'Image not found', 404)
+      }
+
+      // If thumbnail exists, return it
+      if (result.thumbnail) {
+        return ok({ thumbnail: Array.from(result.thumbnail) })
+      }
+
+      // No thumbnail exists, generate on-demand
+      const thumbnail = await generateThumbnail(result.data)
+      if (!thumbnail) {
+        // Generation failed, return null
+        return ok({ thumbnail: null })
+      }
+
+      // Save the generated thumbnail to the database
+      await withRetry(() => db.update(images).set({ thumbnail }).where(eq(images.id, id)))
+
+      return ok({ thumbnail: Array.from(thumbnail) })
+    } catch (error) {
+      return handleDbError(error, 'getThumbnail')
     }
   })

@@ -91,13 +91,15 @@ describe('storeImage', () => {
       expect(result.data.isNew).toBe(true)
     }
 
-    // Verify insert was called with correct values
-    expect(mockValues).toHaveBeenCalledWith({
-      contentHash: expectedHash,
-      originalUrl: 'https://example.com/image.png',
-      mimeType: 'image/png',
-      data: Buffer.from(testData),
-    })
+    // Verify insert was called with correct values (thumbnail may be null or Buffer)
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentHash: expectedHash,
+        originalUrl: 'https://example.com/image.png',
+        mimeType: 'image/png',
+        data: Buffer.from(testData),
+      }),
+    )
   })
 
   it('returns existing ID for duplicate content hash', async () => {
@@ -286,7 +288,7 @@ describe('listImages', () => {
     )
   })
 
-  it('excludes data blob from select columns', async () => {
+  it('excludes data blob from select columns but includes thumbnail', async () => {
     const { listImages } = await import('./images')
 
     mockFindMany.mockResolvedValueOnce([])
@@ -301,6 +303,7 @@ describe('listImages', () => {
           originalUrl: true,
           mimeType: true,
           createdAt: true,
+          thumbnail: true,
         },
       }),
     )
