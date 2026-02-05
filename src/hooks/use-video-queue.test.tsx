@@ -25,10 +25,12 @@ import {
 import {
   useAddVideo,
   useClearQueue,
+  useInvalidateVideoQueue,
   useSetFitMode,
   useSetRepeatMode,
   useSkipVideo,
   useVideoQueue,
+  VIDEO_QUEUE_KEY,
 } from './use-video-queue'
 
 function createWrapper() {
@@ -345,6 +347,50 @@ describe('use-video-queue hooks', () => {
       })
 
       expect(result.current.error?.message).toBe('Failed to set fit mode')
+    })
+  })
+
+  describe('useInvalidateVideoQueue', () => {
+    it('returns a function that invalidates video queue queries', async () => {
+      const mockQueueState: VideoQueueState = {
+        queue: [],
+        current: null,
+        repeat: false,
+        fit: 'cover',
+      }
+
+      vi.mocked(getVideoQueue).mockResolvedValue(mockQueueState)
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      })
+
+      // First, populate the cache with a query
+      const endpointUrl = 'http://localhost:4200'
+      await queryClient.prefetchQuery({
+        queryKey: [...VIDEO_QUEUE_KEY, endpointUrl],
+        queryFn: () => getVideoQueue({ data: { endpointUrl } }),
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+
+      const { result } = renderHook(() => useInvalidateVideoQueue(), { wrapper })
+
+      // The hook should return a function
+      expect(typeof result.current).toBe('function')
+
+      // Call the invalidate function
+      await result.current(endpointUrl)
+
+      // Verify the query was invalidated (state should be stale)
+      const queryState = queryClient.getQueryState([...VIDEO_QUEUE_KEY, endpointUrl])
+      expect(queryState?.isInvalidated).toBe(true)
     })
   })
 })

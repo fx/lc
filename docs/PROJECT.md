@@ -4,7 +4,7 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
-- [x] Feature: Video Queue API Integration
+- [x] Feature: Video Queue API Integration (PR #14)
   - [x] Add video queue server functions in `src/lib/video-api.ts`
     - [x] getVideoQueue: fetch queue state (queue, current, repeat, fit)
     - [x] addVideoToQueue: POST video URL (YouTube/direct)
@@ -15,7 +15,7 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Add React hooks in `src/hooks/use-video-queue.ts`
     - [x] useVideoQueue: query for queue state with polling
     - [x] useAddVideo, useClearQueue, useSkipVideo mutations
-    - [x] useRepeatMode, useFitMode toggle mutations
+    - [x] useSetRepeatMode, useSetFitMode toggle mutations
 - [ ] Feature: Video Queue UI
   - [ ] Build VideoUrlForm component
     - [ ] URL input with YouTube/direct video validation
