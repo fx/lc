@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useInvalidateImages } from '@/hooks/use-images'
 import { useInstances } from '@/hooks/use-instances'
 import {
   ALLOWED_MIME_TYPES,
@@ -24,6 +25,7 @@ export function ImageUploadForm() {
   const { data: instances } = useInstances()
   const selectedId = useInstancesStore((state) => state.selectedId)
   const selectedInstance = instances?.find((i) => i.id === selectedId)
+  const invalidateImages = useInvalidateImages()
 
   const fileInputId = `${formId}-file`
   const fileErrorId = `${formId}-file-error`
@@ -55,6 +57,8 @@ export function ImageUploadForm() {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
+      // Refresh the image gallery
+      invalidateImages()
     },
   })
 

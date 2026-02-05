@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useInvalidateImages } from '@/hooks/use-images'
 import { useInstances } from '@/hooks/use-instances'
 import { sendImageToDisplay } from '@/lib/send-image-to-display'
 import { validateEndpointUrl } from '@/lib/utils'
@@ -18,6 +19,7 @@ export function ImageUrlForm() {
   const { data: instances } = useInstances()
   const selectedId = useInstancesStore((state) => state.selectedId)
   const selectedInstance = instances?.find((i) => i.id === selectedId)
+  const invalidateImages = useInvalidateImages()
 
   const imageUrlId = `${formId}-imageUrl`
   const imageUrlErrorId = `${formId}-imageUrl-error`
@@ -39,6 +41,8 @@ export function ImageUrlForm() {
     onSuccess: () => {
       setImageUrl('')
       setUrlError(null)
+      // Refresh the image gallery
+      invalidateImages()
     },
   })
 
