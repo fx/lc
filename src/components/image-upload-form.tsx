@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useInstances } from '@/hooks/use-instances'
+import {
+  ALLOWED_MIME_TYPES,
+  MAX_UPLOAD_SIZE_BYTES,
+  MAX_UPLOAD_SIZE_MB,
+} from '@/lib/image-constants'
 import { sendUploadedImageToDisplay } from '@/lib/send-image-to-display'
 import { cn } from '@/lib/utils'
-import { ALLOWED_MIME_TYPES } from '@/server/images'
 import { useInstancesStore } from '@/stores/instances'
-
-const MAX_FILE_SIZE_MB = 10
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 export function ImageUploadForm() {
   const formId = useId()
@@ -61,8 +62,8 @@ export function ImageUploadForm() {
     if (!ALLOWED_MIME_TYPES.includes(file.type as (typeof ALLOWED_MIME_TYPES)[number])) {
       return `Unsupported file type: ${file.type || 'unknown'}. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`
     }
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      return `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_FILE_SIZE_MB}MB limit`
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      return `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_UPLOAD_SIZE_MB}MB limit`
     }
     return null
   }
@@ -144,7 +145,7 @@ export function ImageUploadForm() {
                 {mutation.isPending ? 'Uploading...' : 'Drag and drop an image, or click to select'}
               </p>
               <p className="text-xs text-muted-foreground">
-                PNG, JPEG, GIF, WebP, BMP (max {MAX_FILE_SIZE_MB}MB)
+                PNG, JPEG, GIF, WebP, BMP (max {MAX_UPLOAD_SIZE_MB}MB)
               </p>
             </label>
             <Input

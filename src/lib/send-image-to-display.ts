@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { Jimp } from 'jimp'
-import { ALLOWED_MIME_TYPES, storeImageCore } from '@/server/images'
+import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES } from '@/lib/image-constants'
+import { storeImageCore } from '@/server/images'
 import { validateEndpointUrl } from './utils'
 
 interface SendImageInput {
@@ -36,10 +37,6 @@ const FETCH_TIMEOUT_MS = 15000
 // Maximum image file size for URL-based fetches (50MB)
 // Larger limit for external URLs since they may host high-resolution images
 const MAX_URL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024
-
-// Maximum image file size for direct uploads (10MB)
-// Aligned with client-side limit in image-upload-form.tsx
-const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
 
 /**
  * Shared helper to process an image and send it to the display.
