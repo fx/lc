@@ -11,7 +11,6 @@ interface SendImageInput {
 interface SendImageResult {
   success: boolean
   error?: string
-  warning?: string
 }
 
 // Configuration bounds for display dimensions
@@ -23,9 +22,6 @@ const FETCH_TIMEOUT_MS = 15000
 
 // Maximum image file size in bytes (50MB)
 const MAX_IMAGE_SIZE_BYTES = 50 * 1024 * 1024
-
-// Recommended maximum source image dimensions
-const RECOMMENDED_MAX_DIMENSION = 256
 
 /**
  * Server function to send an image to the LED matrix display.
@@ -108,15 +104,6 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
 
       // 3. Process image with jimp: resize and get raw RGBA bitmap
       const image = await Jimp.read(imageBuffer)
-
-      // Check source image dimensions and set warning if too large
-      let warning: string | undefined
-      const sourceWidth = image.width
-      const sourceHeight = image.height
-      if (sourceWidth > RECOMMENDED_MAX_DIMENSION || sourceHeight > RECOMMENDED_MAX_DIMENSION) {
-        warning = `Source image dimensions (${sourceWidth}x${sourceHeight}) exceed recommended maximum (${RECOMMENDED_MAX_DIMENSION}x${RECOMMENDED_MAX_DIMENSION})`
-      }
-
       const resized = image.cover({ w: width, h: height })
       const rgbaBuffer = resized.bitmap.data
 
@@ -143,7 +130,7 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
         return { success: false, error: `Failed to send frame: ${frameResponse.status}` }
       }
 
-      return { success: true, warning }
+      return { success: true }
     } catch (error) {
       // Handle abort errors (including timeouts from AbortSignal.timeout)
       if (error instanceof Error && error.name === 'AbortError') {
