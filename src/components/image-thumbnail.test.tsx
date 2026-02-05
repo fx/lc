@@ -3,9 +3,10 @@ import { cleanup, fireEvent, render, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import { ImageThumbnail } from './image-thumbnail'
 
-// Mock the useImageThumbnail hook
+// Mock the useImageThumbnail and useImagePreview hooks
 vi.mock('@/hooks/use-images', () => ({
   useImageThumbnail: vi.fn(),
+  useImagePreview: vi.fn(() => ({ data: null, isLoading: false })),
 }))
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
@@ -71,6 +72,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -93,6 +96,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -115,6 +120,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -137,6 +144,8 @@ describe('ImageThumbnail', () => {
       render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -148,7 +157,7 @@ describe('ImageThumbnail', () => {
       expect(mockCreateObjectURL).toHaveBeenCalledWith(expect.any(Blob))
     })
 
-    it('shows "No preview" when no thumbnail data', () => {
+    it('shows "Select instance" when no display dimensions', () => {
       ;(useImageThumbnail as Mock).mockReturnValue({
         data: null,
         isLoading: false,
@@ -157,6 +166,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -165,10 +176,10 @@ describe('ImageThumbnail', () => {
         { wrapper: createWrapper() },
       )
 
-      expect(container.textContent).toContain('No preview')
+      expect(container.textContent).toContain('Select instance')
     })
 
-    it('shows "No preview" when thumbnail array is empty', () => {
+    it('shows "Select instance" when thumbnail data is null and no dimensions', () => {
       ;(useImageThumbnail as Mock).mockReturnValue({
         data: { thumbnail: null },
         isLoading: false,
@@ -177,6 +188,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -185,7 +198,7 @@ describe('ImageThumbnail', () => {
         { wrapper: createWrapper() },
       )
 
-      expect(container.textContent).toContain('No preview')
+      expect(container.textContent).toContain('Select instance')
     })
   })
 
@@ -199,6 +212,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -222,6 +237,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={imageWithoutUrl}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -242,6 +259,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -265,6 +284,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -287,6 +308,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -310,6 +333,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={true}
           sendSuccess={false}
@@ -331,6 +356,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={true}
           sendSuccess={false}
@@ -355,6 +382,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={true}
@@ -376,6 +405,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -399,6 +430,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -423,6 +456,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -446,6 +481,8 @@ describe('ImageThumbnail', () => {
       const { unmount } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -470,6 +507,8 @@ describe('ImageThumbnail', () => {
       const { unmount } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -496,6 +535,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={mockImage}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -519,6 +560,8 @@ describe('ImageThumbnail', () => {
       const { container } = render(
         <ImageThumbnail
           image={imageWithoutUrl}
+          displayWidth={null}
+          displayHeight={null}
           onSend={mockOnSend}
           isSending={false}
           sendSuccess={false}
@@ -528,7 +571,7 @@ describe('ImageThumbnail', () => {
       )
 
       const img = container.querySelector('img')
-      expect(img?.getAttribute('alt')).toBe('Image thumbnail')
+      expect(img?.getAttribute('alt')).toBe('Image preview')
     })
   })
 })

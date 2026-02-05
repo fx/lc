@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useImages, useSendImageToDisplay } from '@/hooks/use-images'
+import { useDisplayConfig, useImages, useSendImageToDisplay } from '@/hooks/use-images'
 import { useInstances } from '@/hooks/use-instances'
 import { cn } from '@/lib/utils'
 import { useInstancesStore } from '@/stores/instances'
@@ -32,6 +32,9 @@ export function ImageGallery() {
   const { data: instances } = useInstances()
   const selectedId = useInstancesStore((state) => state.selectedId)
   const selectedInstance = instances?.find((i) => i.id === selectedId)
+
+  // Fetch display config for the selected instance
+  const { data: displayConfig } = useDisplayConfig(selectedInstance?.endpointUrl ?? null)
 
   const sendMutation = useSendImageToDisplay()
 
@@ -109,6 +112,8 @@ export function ImageGallery() {
                   <ImageThumbnail
                     key={image.id}
                     image={image}
+                    displayWidth={displayConfig?.width ?? null}
+                    displayHeight={displayConfig?.height ?? null}
                     onSend={() => handleSend(image.id)}
                     isSending={sendingImageId === image.id}
                     sendSuccess={sendStatus?.imageId === image.id && sendStatus.success}
@@ -123,7 +128,7 @@ export function ImageGallery() {
             )}
             {!selectedInstance && images && images.length > 0 && (
               <p className="mt-4 text-sm text-muted-foreground">
-                Select an instance to send images to the display.
+                Select an instance to preview images at display dimensions.
               </p>
             )}
           </CardContent>

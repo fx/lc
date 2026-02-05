@@ -8,6 +8,7 @@ import { ImageGallery } from './image-gallery'
 vi.mock('@/hooks/use-images', () => ({
   useImages: vi.fn(),
   useSendImageToDisplay: vi.fn(),
+  useDisplayConfig: vi.fn(() => ({ data: null, isLoading: false })),
 }))
 
 vi.mock('@/hooks/use-instances', () => ({
@@ -19,17 +20,23 @@ vi.mock('./image-thumbnail', () => ({
   ImageThumbnail: vi.fn(
     ({
       image,
+      displayWidth,
+      displayHeight,
       isSending,
       sendSuccess,
       sendError,
     }: {
       image: { id: string; originalUrl: string | null }
+      displayWidth: number | null
+      displayHeight: number | null
       isSending: boolean
       sendSuccess: boolean
       sendError: string | null
     }) => (
       <div
         data-testid={`thumbnail-${image.id}`}
+        data-display-width={displayWidth}
+        data-display-height={displayHeight}
         data-sending={isSending}
         data-success={sendSuccess}
         data-error={sendError}
@@ -237,7 +244,7 @@ describe('ImageGallery', () => {
 
       const { container } = render(<ImageGallery />, { wrapper: createWrapper() })
 
-      expect(container.textContent).toContain('Select an instance to send images')
+      expect(container.textContent).toContain('Select an instance to preview images')
     })
 
     it('does not show warning when instance is selected', () => {
@@ -250,7 +257,7 @@ describe('ImageGallery', () => {
 
       const { container } = render(<ImageGallery />, { wrapper: createWrapper() })
 
-      expect(container.textContent).not.toContain('Select an instance to send images')
+      expect(container.textContent).not.toContain('Select an instance to preview images')
     })
 
     it('does not show warning when no images', () => {
@@ -263,7 +270,7 @@ describe('ImageGallery', () => {
 
       const { container } = render(<ImageGallery />, { wrapper: createWrapper() })
 
-      expect(container.textContent).not.toContain('Select an instance to send images')
+      expect(container.textContent).not.toContain('Select an instance to preview images')
     })
   })
 

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getConfiguration } from '@/lib/api'
 import type { Result } from '@/lib/types'
-import { getImage, getThumbnail, listImages } from '@/server/images'
+import { getImage, getImagePreview, getThumbnail, listImages } from '@/server/images'
 import { sendStoredImageToDisplay } from '@/server/send-stored-image'
 
 export const IMAGES_KEY = ['images'] as const
@@ -44,6 +45,31 @@ export function useImageThumbnail(id: string | null) {
     },
     enabled: !!id,
     staleTime: Number.POSITIVE_INFINITY,
+  })
+}
+
+export function useImagePreview(id: string | null, width: number | null, height: number | null) {
+  return useQuery({
+    queryKey: [...IMAGES_KEY, 'preview', id, width, height],
+    queryFn: async () => {
+      if (!id || !width || !height) return null
+      const result = await getImagePreview({ data: { imageId: id, width, height } })
+      return unwrapResult(result)
+    },
+    enabled: !!id && !!width && !!height,
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+}
+
+export function useDisplayConfig(endpointUrl: string | null) {
+  return useQuery({
+    queryKey: ['configuration', endpointUrl],
+    queryFn: async () => {
+      if (!endpointUrl) return null
+      return getConfiguration({ data: { endpointUrl } })
+    },
+    enabled: !!endpointUrl,
+    staleTime: 60000, // Cache for 1 minute
   })
 }
 

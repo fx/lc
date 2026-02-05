@@ -1,7 +1,7 @@
 import { CheckCircle2, Loader2, Send, XCircle } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { useImageThumbnail } from '@/hooks/use-images'
+import { useImagePreview, useImageThumbnail } from '@/hooks/use-images'
 import { cn } from '@/lib/utils'
 
 interface ImageMetadata {
@@ -15,6 +15,8 @@ interface ImageMetadata {
 
 interface ImageThumbnailProps {
   image: ImageMetadata
+  displayWidth: number | null
+  displayHeight: number | null
   onSend: () => void
   isSending: boolean
   sendSuccess: boolean
@@ -45,48 +47,71 @@ function truncateUrl(url: string, maxLength = 20): string {
 
 export function ImageThumbnail({
   image,
+  displayWidth,
+  displayHeight,
   onSend,
   isSending,
   sendSuccess,
   sendError,
 }: ImageThumbnailProps) {
-  const { data: thumbnailData, isLoading: thumbnailLoading } = useImageThumbnail(image.id)
+  // Use preview when display dimensions are available, otherwise fall back to thumbnail
+  const hasDisplayDimensions = displayWidth !== null && displayHeight !== null
+  const { data: previewData, isLoading: previewLoading } = useImagePreview(
+    hasDisplayDimensions ? image.id : null,
+    displayWidth,
+    displayHeight,
+  )
+  const { data: thumbnailData, isLoading: thumbnailLoading } = useImageThumbnail(
+    hasDisplayDimensions ? null : image.id,
+  )
 
-  // Convert thumbnail bytes to object URL
-  const thumbnailSrc = useMemo(() => {
+  const isLoading = hasDisplayDimensions ? previewLoading : thumbnailLoading
+
+  // Convert image bytes to object URL
+  const imageSrc = useMemo(() => {
+    if (hasDisplayDimensions) {
+      if (!previewData?.preview) return null
+      const bytes = new Uint8Array(previewData.preview)
+      const blob = new Blob([bytes], { type: 'image/jpeg' })
+      return URL.createObjectURL(blob)
+    }
     if (!thumbnailData?.thumbnail) return null
     const bytes = new Uint8Array(thumbnailData.thumbnail)
     const blob = new Blob([bytes], { type: 'image/jpeg' })
     return URL.createObjectURL(blob)
-  }, [thumbnailData])
+  }, [hasDisplayDimensions, previewData, thumbnailData])
 
   // Cleanup object URL to prevent memory leaks
   useEffect(() => {
     return () => {
-      if (thumbnailSrc) {
-        URL.revokeObjectURL(thumbnailSrc)
+      if (imageSrc) {
+        URL.revokeObjectURL(imageSrc)
       }
     }
-  }, [thumbnailSrc])
+  }, [imageSrc])
 
   return (
     <div className="group relative flex flex-col gap-1">
-      {/* Thumbnail container - square aspect ratio */}
-      <div className="relative aspect-square w-full overflow-hidden border bg-muted">
-        {thumbnailLoading ? (
-          <div className="flex h-full w-full items-center justify-center">
+      {/* Preview container - shows image at native display dimensions centered */}
+      <div className="relative flex min-h-[80px] items-center justify-center overflow-hidden border bg-muted p-2">
+        {isLoading ? (
+          <div className="flex h-16 w-16 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : thumbnailSrc ? (
+        ) : imageSrc ? (
           <img
-            src={thumbnailSrc}
-            alt={image.originalUrl ? `Thumbnail of ${image.originalUrl}` : 'Image thumbnail'}
-            className="h-full w-full object-cover"
+            src={imageSrc}
+            alt={image.originalUrl ? `Preview of ${image.originalUrl}` : 'Image preview'}
+            style={
+              hasDisplayDimensions
+                ? { width: displayWidth, height: displayHeight, imageRendering: 'pixelated' }
+                : { width: 64, height: 64, imageRendering: 'pixelated' }
+            }
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
-            No preview
+          <div className="flex h-16 w-16 items-center justify-center text-muted-foreground text-xs">
+            {hasDisplayDimensions ? 'No preview' : 'Select instance'}
           </div>
         )}
 

@@ -259,3 +259,74 @@ export const getThumbnail = createServerFn({ method: 'GET' })
       return handleDbError(error, 'getThumbnail')
     }
   })
+
+const PREVIEW_QUALITY = 90
+const MIN_DIMENSION = 1
+const MAX_DIMENSION = 1024
+
+interface GetImagePreviewInput {
+  imageId: string
+  width: number
+  height: number
+}
+
+/**
+ * Generate a preview of an image at specific dimensions with cover crop.
+ * Returns the image as JPEG bytes sized to match the display dimensions.
+ */
+export const getImagePreview = createServerFn({ method: 'GET' })
+  .inputValidator((input: GetImagePreviewInput) => {
+    if (!input.imageId || typeof input.imageId !== 'string') {
+      throw new Error('imageId must be a non-empty string')
+    }
+    if (
+      typeof input.width !== 'number' ||
+      input.width < MIN_DIMENSION ||
+      input.width > MAX_DIMENSION
+    ) {
+      throw new Error(`width must be between ${MIN_DIMENSION} and ${MAX_DIMENSION}`)
+    }
+    if (
+      typeof input.height !== 'number' ||
+      input.height < MIN_DIMENSION ||
+      input.height > MAX_DIMENSION
+    ) {
+      throw new Error(`height must be between ${MIN_DIMENSION} and ${MAX_DIMENSION}`)
+    }
+    return input
+  })
+  .handler(async ({ data }): Promise<Result<{ preview: number[] }>> => {
+    const { eq } = await import('drizzle-orm')
+    const { db, withRetry } = await import('@/db')
+    const { handleDbError } = await import('@/db/errors')
+    const { images } = await import('@/db/schema')
+
+    try {
+      const { imageId, width, height } = data
+
+      // Fetch the original image data
+      const result = await withRetry(() =>
+        db.query.images.findFirst({
+          where: eq(images.id, imageId),
+          columns: { data: true },
+        }),
+      )
+
+      if (!result) {
+        return err('NOT_FOUND', 'Image not found', 404)
+      }
+
+      // Generate preview at requested dimensions using cover crop
+      try {
+        const { Jimp } = await import('jimp')
+        const image = await Jimp.read(result.data)
+        image.cover({ w: width, h: height })
+        const jpegBuffer = await image.getBuffer('image/jpeg', { quality: PREVIEW_QUALITY })
+        return ok({ preview: Array.from(Buffer.from(jpegBuffer)) })
+      } catch {
+        return err('PROCESSING_ERROR', 'Failed to process image', 500)
+      }
+    } catch (error) {
+      return handleDbError(error, 'getImagePreview')
+    }
+  })
