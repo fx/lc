@@ -1,5 +1,5 @@
 import { CheckCircle2, Loader2, Send, XCircle } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { useImageThumbnail } from '@/hooks/use-images'
 import { cn } from '@/lib/utils'
@@ -52,13 +52,22 @@ export function ImageThumbnail({
 }: ImageThumbnailProps) {
   const { data: thumbnailData, isLoading: thumbnailLoading } = useImageThumbnail(image.id)
 
-  // Convert thumbnail bytes to data URL
+  // Convert thumbnail bytes to object URL
   const thumbnailSrc = useMemo(() => {
     if (!thumbnailData?.thumbnail) return null
     const bytes = new Uint8Array(thumbnailData.thumbnail)
     const blob = new Blob([bytes], { type: 'image/jpeg' })
     return URL.createObjectURL(blob)
   }, [thumbnailData])
+
+  // Cleanup object URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (thumbnailSrc) {
+        URL.revokeObjectURL(thumbnailSrc)
+      }
+    }
+  }, [thumbnailSrc])
 
   return (
     <div className="group relative flex flex-col gap-1">
