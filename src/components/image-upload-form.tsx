@@ -145,7 +145,7 @@ export function ImageUploadForm() {
                 {mutation.isPending ? 'Uploading...' : 'Drag and drop an image, or click to select'}
               </p>
               <p className="text-xs text-muted-foreground">
-                PNG, JPEG, GIF, WebP, BMP (max {MAX_UPLOAD_SIZE_MB}MB)
+                PNG, JPEG, GIF, BMP (max {MAX_UPLOAD_SIZE_MB}MB)
               </p>
             </label>
             <Input

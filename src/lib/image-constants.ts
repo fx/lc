@@ -1,12 +1,6 @@
 // Shared constants for image handling (safe to import from client code)
 
-export const ALLOWED_MIME_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/gif',
-  'image/webp',
-  'image/bmp',
-] as const
+export const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp'] as const
 
 export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number]
 

@@ -167,7 +167,7 @@ describe('ImageUploadForm', () => {
     const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
 
     expect(container.textContent).toContain('Drag and drop an image, or click to select')
-    expect(container.textContent).toContain('PNG, JPEG, GIF, WebP, BMP')
+    expect(container.textContent).toContain('PNG, JPEG, GIF, BMP')
   })
 
   it('shows error for unsupported file type', async () => {
