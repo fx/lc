@@ -9,10 +9,15 @@ vi.mock('jimp', () => ({
 
 // Mock storeImageCore to avoid database calls
 vi.mock('@/server/images', () => ({
-  ALLOWED_MIME_TYPES: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'],
   storeImageCore: vi
     .fn()
     .mockResolvedValue({ success: true, data: { id: 'test-id', isNew: true } }),
+}))
+
+// Mock image constants
+vi.mock('@/lib/image-constants', () => ({
+  ALLOWED_MIME_TYPES: ['image/png', 'image/jpeg', 'image/gif', 'image/bmp'],
+  MAX_UPLOAD_SIZE_BYTES: 10 * 1024 * 1024,
 }))
 
 // Mock createServerFn to return the handler directly for testing
