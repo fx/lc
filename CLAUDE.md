@@ -36,6 +36,22 @@ bun run db:push             # Push schema to database
 
 **Path aliases**: `@/*` → `./src/*`
 
+## Client/Server Separation
+
+TanStack Start uses Vite which bundles client and server code separately. **Never import server-only modules in client code.**
+
+**Server-only modules** (will cause `ReferenceError: Buffer is not defined` or similar if imported on client):
+- `src/server/*` (database, drizzle, postgres)
+- `src/db/*` (schema, connection)
+- Any module using Node.js APIs (`Buffer`, `fs`, `crypto`, etc.)
+
+**Safe patterns:**
+- Server functions in `src/server/*.ts` use `createServerFn` from `@tanstack/react-start`
+- Client components import server functions directly (TanStack Start handles the RPC boundary)
+- Never re-export server internals from server function files
+
+**Example error:** `postgres-bytea` uses `Buffer` → imported on client → crashes. Fix: ensure the import chain doesn't pull database code into client bundle.
+
 ## Code Style
 
 - Biome: single quotes, no semicolons, 2-space indent
