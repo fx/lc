@@ -28,17 +28,17 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Consider typed errors for HTTP-aware status codes (404 Not Found)
   - [x] Add TanStack Query optimistic updates for mutations
   - [x] Generate and commit initial Drizzle migrations for production
-- [ ] Feature: Image Storage
-  - [ ] Create images table schema
-    - [ ] Fields: id, contentHash (SHA-256), originalUrl (nullable), mimeType, data (bytea), createdAt
-    - [ ] Unique constraint on contentHash for deduplication
-  - [ ] Add image storage server functions
-    - [ ] storeImage: hash content, check for duplicate, store if new, return image id
-    - [ ] getImage: retrieve by id
-    - [ ] listImages: paginated list with metadata (no data blob)
-  - [ ] Integrate with image URL flow
-    - [ ] After fetching URL, store original image before transformation
-    - [ ] Track sourceUrl for URL-fetched images
+- [x] Feature: Image Storage (PR #11)
+  - [x] Create images table schema
+    - [x] Fields: id, contentHash (SHA-256), originalUrl (nullable), mimeType, data (bytea), createdAt
+    - [x] Unique constraint on contentHash for deduplication
+  - [x] Add image storage server functions
+    - [x] storeImage: hash content, check for duplicate, store if new, return image id
+    - [x] getImage: retrieve by id
+    - [x] listImages: paginated list with metadata (no data blob)
+  - [x] Integrate with image URL flow
+    - [x] After fetching URL, store original image before transformation
+    - [x] Track sourceUrl for URL-fetched images
 - [ ] Feature: Image Upload
   - [ ] Add file upload server function
     - [ ] Accept image file, validate type/size
