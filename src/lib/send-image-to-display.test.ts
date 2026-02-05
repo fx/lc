@@ -303,7 +303,7 @@ describe('sendUploadedImageToDisplay', () => {
       // The inputValidator is mocked, so we need to test the actual validation logic
       // by checking that the function would reject invalid MIME types
       // Since createServerFn is mocked to bypass validation, we test the handler behavior
-      const result = await sendUploadedImageToDisplay({
+      await sendUploadedImageToDisplay({
         data: {
           imageData,
           mimeType: 'image/svg+xml', // Invalid MIME type
@@ -320,7 +320,7 @@ describe('sendUploadedImageToDisplay', () => {
     it('rejects empty image data', async () => {
       const { sendUploadedImageToDisplay } = await import('./send-image-to-display')
 
-      const result = await sendUploadedImageToDisplay({
+      await sendUploadedImageToDisplay({
         data: {
           imageData: [],
           mimeType: 'image/png',
