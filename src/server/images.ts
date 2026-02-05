@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { db, withRetry } from '@/db'
 import { handleDbError } from '@/db/errors'
 import { images } from '@/db/schema'
+import { MAX_UPLOAD_SIZE_BYTES } from '@/lib/image-constants'
 import { err, ok, type Result } from '@/lib/types'
 
 interface StoreImageResult {
@@ -74,17 +75,14 @@ export async function storeImageCore(
   }
 }
 
-// Maximum image size for client uploads (10MB)
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-
 // Server function wrapper for client-side calls
 export const storeImage = createServerFn({ method: 'POST' })
   .inputValidator((data: { data: number[]; mimeType: string; originalUrl?: string }) => {
     if (!data || !Array.isArray(data.data) || data.data.length === 0) {
       throw new Error('Image data must be a non-empty array')
     }
-    if (data.data.length > MAX_IMAGE_BYTES) {
-      throw new Error(`Image data exceeds ${MAX_IMAGE_BYTES / 1024 / 1024}MB limit`)
+    if (data.data.length > MAX_UPLOAD_SIZE_BYTES) {
+      throw new Error(`Image data exceeds ${MAX_UPLOAD_SIZE_BYTES / 1024 / 1024}MB limit`)
     }
     if (typeof data.mimeType !== 'string' || !/^(image|application)\//.test(data.mimeType)) {
       throw new Error('Invalid or unsupported mimeType')

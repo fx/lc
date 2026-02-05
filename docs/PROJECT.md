@@ -39,13 +39,13 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
   - [x] Integrate with image URL flow
     - [x] After fetching URL, store original image before transformation
     - [x] Track sourceUrl for URL-fetched images
-- [ ] Feature: Image Upload
-  - [ ] Add file upload server function
-    - [ ] Accept image file, validate type/size
-    - [ ] Hash and dedupe same as URL flow
-  - [ ] Add upload UI to home page
-    - [ ] File input or drag-and-drop zone
-    - [ ] Show upload progress and success/error states
+- [x] Feature: Image Upload (PR #12)
+  - [x] Add file upload server function
+    - [x] Accept image file, validate type/size
+    - [x] Hash and dedupe same as URL flow
+  - [x] Add upload UI to home page
+    - [x] File input or drag-and-drop zone
+    - [x] Show upload progress and success/error states
 - [ ] Feature: Image Gallery
   - [ ] Generate and store thumbnails
     - [ ] Add thumbnail column to images table (small JPEG blob)
