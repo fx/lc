@@ -4,6 +4,35 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
+- [x] Feature: Video Queue API Integration
+  - [x] Add video queue server functions in `src/lib/video-api.ts`
+    - [x] getVideoQueue: fetch queue state (queue, current, repeat, fit)
+    - [x] addVideoToQueue: POST video URL (YouTube/direct)
+    - [x] clearVideoQueue: DELETE queue
+    - [x] skipVideo: POST skip current
+    - [x] setRepeatMode: PUT repeat enabled/disabled
+    - [x] setFitMode: PUT fit mode (cover/contain/stretch)
+  - [x] Add React hooks in `src/hooks/use-video-queue.ts`
+    - [x] useVideoQueue: query for queue state with polling
+    - [x] useAddVideo, useClearQueue, useSkipVideo mutations
+    - [x] useRepeatMode, useFitMode toggle mutations
+- [ ] Feature: Video Queue UI
+  - [ ] Build VideoUrlForm component
+    - [ ] URL input with YouTube/direct video validation
+    - [ ] Submit button with loading state
+    - [ ] Success/error feedback
+  - [ ] Build VideoQueuePanel component
+    - [ ] Show current playing video (if any)
+    - [ ] List queued videos with status badges
+    - [ ] Clear queue button
+    - [ ] Skip button (when video playing)
+  - [ ] Build VideoControls component
+    - [ ] Repeat mode toggle
+    - [ ] Fit mode selector (cover/contain/stretch)
+  - [ ] Add video section to home page
+    - [ ] Collapsible section like image gallery
+    - [ ] Include VideoUrlForm, VideoQueuePanel, VideoControls
+
 - [x] Feature: PostgreSQL + Drizzle Backend (PR #9)
   - [x] Add PostgreSQL with Docker Compose
     - [x] Create docker-compose.yml with PostgreSQL 16
