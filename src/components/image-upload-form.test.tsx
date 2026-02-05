@@ -58,6 +58,21 @@ function uploadFile(container: HTMLElement, file: File): void {
   fireEvent.change(fileInput, { target: { files: [file] } })
 }
 
+function createMockDragEvent(files: File[] = []): Partial<React.DragEvent<HTMLDivElement>> {
+  return {
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
+    dataTransfer: {
+      files: files as unknown as FileList,
+    } as DataTransfer,
+  }
+}
+
+function getDropZone(container: HTMLElement): HTMLElement {
+  // The drop zone is the label element with the border-dashed class (drag and drop area)
+  return container.querySelector('label.border-dashed') as HTMLElement
+}
+
 describe('ImageUploadForm', () => {
   beforeEach(() => {
     useInstancesStore.setState({ selectedId: null })
@@ -301,6 +316,230 @@ describe('ImageUploadForm', () => {
           endpointUrl: 'http://localhost:4200',
         },
       })
+    })
+  })
+
+  describe('drag and drop', () => {
+    it('resets isDragging state on dragLeave', () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      // First drag over to set isDragging to true
+      fireEvent.dragOver(dropZone, createMockDragEvent())
+
+      // Verify drag state is active (border-primary class applied)
+      expect(dropZone.className).toContain('border-primary')
+
+      // Now drag leave
+      fireEvent.dragLeave(dropZone, createMockDragEvent())
+
+      // Verify drag state is reset (border-primary class removed)
+      expect(dropZone.className).not.toContain('border-primary')
+    })
+
+    it('handles drop with invalid file type', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      const invalidFile = createMockFile('test.txt', 'text/plain')
+      fireEvent.drop(dropZone, createMockDragEvent([invalidFile]))
+
+      await waitFor(() => {
+        expect(container.textContent).toContain('Unsupported file type')
+      })
+
+      // Should not call the server function
+      expect(sendImageModule.sendUploadedImageToDisplay).not.toHaveBeenCalled()
+    })
+
+    it('handles drop with file too large', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      // 11MB file (over 10MB limit)
+      const largeFile = createMockFile('test.png', 'image/png', 11 * 1024 * 1024)
+      fireEvent.drop(dropZone, createMockDragEvent([largeFile]))
+
+      await waitFor(() => {
+        expect(container.textContent).toContain('File too large')
+      })
+
+      // Should not call the server function
+      expect(sendImageModule.sendUploadedImageToDisplay).not.toHaveBeenCalled()
+    })
+
+    it('ignores drop when no instance is selected', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      // No instance selected
+      useInstancesStore.setState({ selectedId: null })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      const validFile = createMockFile('test.png', 'image/png')
+      fireEvent.drop(dropZone, createMockDragEvent([validFile]))
+
+      // Wait a bit to ensure nothing happens
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Should not call the server function
+      expect(sendImageModule.sendUploadedImageToDisplay).not.toHaveBeenCalled()
+    })
+
+    it('ignores drop when mutation is pending', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      // Make mutation hang
+      vi.mocked(sendImageModule.sendUploadedImageToDisplay).mockImplementation(
+        () => new Promise(() => {}), // Never resolves
+      )
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      // Start first upload
+      const firstFile = createMockFile('first.png', 'image/png')
+      uploadFile(container, firstFile)
+
+      // Wait for mutation to be pending
+      await waitFor(() => {
+        expect(container.textContent).toContain('Sending...')
+      })
+
+      // Reset mock call count
+      vi.mocked(sendImageModule.sendUploadedImageToDisplay).mockClear()
+
+      // Try to drop another file while pending
+      const secondFile = createMockFile('second.png', 'image/png')
+      fireEvent.drop(dropZone, createMockDragEvent([secondFile]))
+
+      // Wait a bit to ensure nothing happens
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Should not call the server function again
+      expect(sendImageModule.sendUploadedImageToDisplay).not.toHaveBeenCalled()
+    })
+
+    it('handles drop with empty dataTransfer files', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      // Drop with no files
+      fireEvent.drop(dropZone, createMockDragEvent([]))
+
+      // Wait a bit to ensure nothing happens
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Should not call the server function
+      expect(sendImageModule.sendUploadedImageToDisplay).not.toHaveBeenCalled()
+    })
+
+    it('triggers upload on valid file drop', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(sendImageModule.sendUploadedImageToDisplay).mockResolvedValue({ success: true })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      const validFile = createMockFile('test.png', 'image/png')
+      fireEvent.drop(dropZone, createMockDragEvent([validFile]))
+
+      await waitFor(() => {
+        expect(sendImageModule.sendUploadedImageToDisplay).toHaveBeenCalled()
+      })
+    })
+
+    it('does not set isDragging on dragOver when no instance selected', () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      // No instance selected
+      useInstancesStore.setState({ selectedId: null })
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      fireEvent.dragOver(dropZone, createMockDragEvent())
+
+      // Should not have dragging state (no border-primary class)
+      expect(dropZone.className).not.toContain('border-primary')
+    })
+
+    it('does not set isDragging on dragOver when mutation is pending', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      // Make mutation hang
+      vi.mocked(sendImageModule.sendUploadedImageToDisplay).mockImplementation(
+        () => new Promise(() => {}), // Never resolves
+      )
+
+      const { container } = render(<ImageUploadForm />, { wrapper: createWrapper() })
+      const dropZone = getDropZone(container)
+
+      // Start upload
+      const firstFile = createMockFile('first.png', 'image/png')
+      uploadFile(container, firstFile)
+
+      // Wait for mutation to be pending
+      await waitFor(() => {
+        expect(container.textContent).toContain('Sending...')
+      })
+
+      // Try to drag over while pending
+      fireEvent.dragOver(dropZone, createMockDragEvent())
+
+      // Should not have dragging state (disabled state takes precedence)
+      expect(dropZone.className).not.toContain('border-primary')
     })
   })
 })
