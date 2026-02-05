@@ -15,6 +15,13 @@
       "when": 1770250404201,
       "tag": "0001_keen_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770263880207,
+      "tag": "0002_petite_hedge_knight",
+      "breakpoints": true
     }
   ]
 }
