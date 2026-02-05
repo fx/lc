@@ -4,6 +4,7 @@ import { DisplayStatus } from '@/components/display-status'
 import { ImageGallery } from '@/components/image-gallery'
 import { ImageUploadForm } from '@/components/image-upload-form'
 import { ImageUrlForm } from '@/components/image-url-form'
+import { VideoSection } from '@/components/video-section'
 import { useInstances } from '@/hooks/use-instances'
 
 export const Route = createFileRoute('/')({
@@ -44,6 +45,7 @@ function Home() {
           <ImageUrlForm />
           <ImageUploadForm />
           <ImageGallery />
+          <VideoSection />
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
