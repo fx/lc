@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { Jimp } from 'jimp'
+import { storeImage } from '@/server/images'
 import { validateEndpointUrl } from './utils'
 
 interface SendImageInput {
@@ -96,6 +97,14 @@ export const sendImageToDisplay = createServerFn({ method: 'POST' })
       }
 
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
+
+      // 2b. Store image for later retrieval (non-blocking, don't fail on error)
+      const mimeType = imageResponse.headers.get('Content-Type') ?? 'application/octet-stream'
+      try {
+        await storeImage({ data: Array.from(imageBuffer), mimeType, originalUrl: imageUrl })
+      } catch (storeError) {
+        console.warn('[sendImageToDisplay] Failed to store image:', storeError)
+      }
 
       // 3. Process image with jimp: resize and get raw RGBA bitmap
       const image = await Jimp.read(imageBuffer)
