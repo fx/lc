@@ -19,57 +19,67 @@ interface ImageMetadata {
   createdAt: Date
 }
 
-export const storeImage = createServerFn({ method: 'POST' })
-  .inputValidator((data: { data: number[]; mimeType: string; originalUrl?: string }) => data)
-  .handler(async ({ data: input }): Promise<Result<StoreImageResult>> => {
-    try {
-      const buffer = Buffer.from(input.data)
-      const contentHash = createHash('sha256').update(buffer).digest('hex')
+// Core function for server-side use (can be called directly from other server functions)
+export async function storeImageCore(
+  buffer: Buffer,
+  mimeType: string,
+  originalUrl?: string,
+): Promise<Result<StoreImageResult>> {
+  try {
+    const contentHash = createHash('sha256').update(buffer).digest('hex')
 
-      // Check if image with this hash already exists
-      const existing = await withRetry(() =>
+    // Check if image with this hash already exists
+    const existing = await withRetry(() =>
+      db.query.images.findFirst({
+        where: eq(images.contentHash, contentHash),
+        columns: { id: true },
+      }),
+    )
+
+    if (existing) {
+      return ok({ id: existing.id, isNew: false })
+    }
+
+    // Insert new image
+    const [inserted] = await withRetry(() =>
+      db
+        .insert(images)
+        .values({
+          contentHash,
+          originalUrl,
+          mimeType,
+          data: buffer,
+        })
+        .onConflictDoNothing({ target: images.contentHash })
+        .returning({ id: images.id }),
+    )
+
+    // If conflict occurred during insert, fetch the existing record
+    if (!inserted) {
+      const existingAfterConflict = await withRetry(() =>
         db.query.images.findFirst({
           where: eq(images.contentHash, contentHash),
           columns: { id: true },
         }),
       )
-
-      if (existing) {
-        return ok({ id: existing.id, isNew: false })
+      if (existingAfterConflict) {
+        return ok({ id: existingAfterConflict.id, isNew: false })
       }
-
-      // Insert new image
-      const [inserted] = await withRetry(() =>
-        db
-          .insert(images)
-          .values({
-            contentHash,
-            originalUrl: input.originalUrl,
-            mimeType: input.mimeType,
-            data: buffer,
-          })
-          .onConflictDoNothing({ target: images.contentHash })
-          .returning({ id: images.id }),
-      )
-
-      // If conflict occurred during insert, fetch the existing record
-      if (!inserted) {
-        const existingAfterConflict = await withRetry(() =>
-          db.query.images.findFirst({
-            where: eq(images.contentHash, contentHash),
-            columns: { id: true },
-          }),
-        )
-        if (existingAfterConflict) {
-          return ok({ id: existingAfterConflict.id, isNew: false })
-        }
-        return err('INSERT_FAILED', 'Failed to store image', 500)
-      }
-
-      return ok({ id: inserted.id, isNew: true })
-    } catch (error) {
-      return handleDbError(error, 'storeImage')
+      return err('INSERT_FAILED', 'Failed to store image', 500)
     }
+
+    return ok({ id: inserted.id, isNew: true })
+  } catch (error) {
+    return handleDbError(error, 'storeImage')
+  }
+}
+
+// Server function wrapper for client-side calls
+export const storeImage = createServerFn({ method: 'POST' })
+  .inputValidator((data: { data: number[]; mimeType: string; originalUrl?: string }) => data)
+  .handler(async ({ data: input }): Promise<Result<StoreImageResult>> => {
+    const buffer = Buffer.from(input.data)
+    return storeImageCore(buffer, input.mimeType, input.originalUrl)
   })
 
 export const getImage = createServerFn({ method: 'GET' })
