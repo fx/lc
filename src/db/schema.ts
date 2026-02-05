@@ -36,6 +36,7 @@ export const images = pgTable(
     originalUrl: text('original_url'),
     mimeType: text('mime_type').notNull(),
     data: bytea('data').notNull(),
+    thumbnail: bytea('thumbnail'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('images_created_at_idx').on(table.createdAt)],

@@ -1,7 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { Jimp } from 'jimp'
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES } from '@/lib/image-constants'
-import { storeImageCore } from '@/server/images'
 import { validateEndpointUrl } from './utils'
 
 interface SendImageInput {
@@ -41,6 +39,7 @@ const MAX_URL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024
 /**
  * Shared helper to process an image and send it to the display.
  * This handles: fetching display config, storing image, resizing, and sending frame.
+ * Uses dynamic imports to keep Node.js deps out of client bundle.
  */
 async function processAndSendToDisplay({
   imageBuffer,
@@ -48,6 +47,9 @@ async function processAndSendToDisplay({
   endpointUrl,
   originalUrl,
 }: ProcessAndSendInput): Promise<SendImageResult> {
+  const { Jimp } = await import('jimp')
+  const { storeImageCore } = await import('@/server/images')
+
   const baseUrl = endpointUrl.replace(/\/+$/, '')
 
   try {

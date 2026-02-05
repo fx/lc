@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
 import { DisplayStatus } from '@/components/display-status'
+import { ImageGallery } from '@/components/image-gallery'
 import { ImageUploadForm } from '@/components/image-upload-form'
 import { ImageUrlForm } from '@/components/image-url-form'
 import { useInstances } from '@/hooks/use-instances'
@@ -42,6 +43,7 @@ function Home() {
           <DisplayStatus />
           <ImageUrlForm />
           <ImageUploadForm />
+          <ImageGallery />
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
