@@ -354,6 +354,13 @@ export function DisplayStatus() {
               : 'Failed to connect to display'}
           </p>
         )}
+        {temperatureQuery.isError && (
+          <p className="text-sm text-destructive">
+            {temperatureQuery.error instanceof Error
+              ? temperatureQuery.error.message
+              : 'Failed to fetch temperature'}
+          </p>
+        )}
       </CardContent>
     </Card>
   )

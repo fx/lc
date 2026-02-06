@@ -417,6 +417,91 @@ describe('DisplayStatus', () => {
         { timeout: 2000 },
       )
     })
+
+    it('shows error message when temperature fetch fails', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockRejectedValue(
+        new Error('Failed to get temperature: timeout'),
+      )
+      vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      await waitFor(
+        () => {
+          expect(screen.getByText('Failed to get temperature: timeout')).toBeDefined()
+        },
+        { timeout: 2000 },
+      )
+    })
+
+    it('shows generic error message when temperature fetch fails with non-Error', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockRejectedValue('string error')
+      vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      await waitFor(
+        () => {
+          expect(screen.getByText('Failed to fetch temperature')).toBeDefined()
+        },
+        { timeout: 2000 },
+      )
+    })
+
+    it('shows error message when setTemperature mutation fails', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
+      vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
+      vi.mocked(apiModule.setTemperature).mockRejectedValue(
+        new Error('Failed to set temperature: server error'),
+      )
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByText('4000 K')).toBeDefined()
+      })
+
+      // Interact with temperature slider to trigger mutation
+      const sliderThumbs = document.querySelectorAll('[role="slider"]')
+      const temperatureThumb = sliderThumbs[1]
+      expect(temperatureThumb).toBeTruthy()
+
+      if (temperatureThumb) {
+        fireEvent.keyDown(temperatureThumb, { key: 'ArrowRight' })
+      }
+
+      await waitFor(
+        () => {
+          expect(screen.getByText('Failed to set temperature: server error')).toBeDefined()
+        },
+        { timeout: 3000 },
+      )
+    })
   })
 
   describe('API calls', () => {
