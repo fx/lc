@@ -4,6 +4,12 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
+- [x] Feature: Color Temperature Control (PR #16)
+  - [x] Add `getTemperature` and `setTemperature` server functions in `src/lib/api.ts`
+  - [x] Add temperature slider (2000-6500K, step 100) to DisplayStatus component
+    - [x] Debounced mutations, optimistic updates, 12s polling
+  - [x] Add comprehensive tests for temperature control
+
 - [x] Feature: Video Queue API Integration (PR #14)
   - [x] Add video queue server functions in `src/lib/video-api.ts`
     - [x] getVideoQueue: fetch queue state (queue, current, repeat, fit)

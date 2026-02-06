@@ -5,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useInstances } from '@/hooks/use-instances'
-import { getBrightness, getConfiguration, setBrightness } from '@/lib/api'
+import {
+  getBrightness,
+  getConfiguration,
+  getTemperature,
+  setBrightness,
+  setTemperature,
+} from '@/lib/api'
 import { useInstancesStore } from '@/stores/instances'
 
 // Polling interval for connection status
@@ -78,15 +84,29 @@ export function DisplayStatus() {
 
   // Local state for immediate slider feedback
   const [localBrightness, setLocalBrightness] = useState<number | null>(null)
+  const [localTemperature, setLocalTemperature] = useState<number | null>(null)
 
-  // Track whether user is actively dragging the slider
+  // Track whether user is actively dragging the sliders
   const isDraggingRef = useRef(false)
+  const isDraggingTemperatureRef = useRef(false)
 
   // Query for brightness with polling
   const brightnessQuery = useQuery({
     queryKey: ['brightness', instanceId],
     queryFn: () =>
       getBrightness({
+        data: { endpointUrl },
+      }),
+    enabled: !!selectedInstance,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+  })
+
+  // Query for temperature with polling
+  const temperatureQuery = useQuery({
+    queryKey: ['temperature', instanceId],
+    queryFn: () =>
+      getTemperature({
         data: { endpointUrl },
       }),
     enabled: !!selectedInstance,
@@ -106,6 +126,7 @@ export function DisplayStatus() {
 
   // Track mutation errors
   const [mutationError, setMutationError] = useState<string | null>(null)
+  const [temperatureMutationError, setTemperatureMutationError] = useState<string | null>(null)
 
   // Mutation for setting brightness
   const brightnessMutation = useMutation({
@@ -126,9 +147,32 @@ export function DisplayStatus() {
     },
   })
 
+  // Mutation for setting temperature
+  const temperatureMutation = useMutation({
+    mutationFn: (temperature: number) =>
+      setTemperature({
+        data: {
+          endpointUrl,
+          temperature,
+        },
+      }),
+    onSuccess: () => {
+      setTemperatureMutationError(null)
+      queryClient.invalidateQueries({ queryKey: ['temperature', instanceId] })
+    },
+    onError: (error) => {
+      setTemperatureMutationError(
+        error instanceof Error ? error.message : 'Failed to set temperature',
+      )
+    },
+  })
+
   // Use ref to always have access to latest mutation function
   const mutationRef = useRef(brightnessMutation)
   mutationRef.current = brightnessMutation
+
+  const temperatureMutationRef = useRef(temperatureMutation)
+  temperatureMutationRef.current = temperatureMutation
 
   // Memoized debounced mutation function - uses ref to avoid stale closure
   const debouncedSetBrightness = useMemo(() => {
@@ -138,12 +182,21 @@ export function DisplayStatus() {
     return { debouncedFn, cancel }
   }, [])
 
+  // Memoized debounced mutation function for temperature
+  const debouncedSetTemperature = useMemo(() => {
+    const { debouncedFn, cancel } = debounce((value: number) => {
+      temperatureMutationRef.current.mutate(value)
+    }, DEBOUNCE_DELAY_MS)
+    return { debouncedFn, cancel }
+  }, [])
+
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
       debouncedSetBrightness.cancel()
+      debouncedSetTemperature.cancel()
     }
-  }, [debouncedSetBrightness])
+  }, [debouncedSetBrightness, debouncedSetTemperature])
 
   // Sync local state when server data changes (but not while dragging)
   useEffect(() => {
@@ -152,12 +205,20 @@ export function DisplayStatus() {
     }
   }, [brightnessQuery.data])
 
+  useEffect(() => {
+    if (temperatureQuery.data && !isDraggingTemperatureRef.current) {
+      setLocalTemperature(temperatureQuery.data.temperature)
+    }
+  }, [temperatureQuery.data])
+
   // Reset local state and cancel pending debounce when instance changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: instanceId triggers reset when instance changes
   useEffect(() => {
     setLocalBrightness(null)
+    setLocalTemperature(null)
     debouncedSetBrightness.cancel()
-  }, [instanceId, debouncedSetBrightness])
+    debouncedSetTemperature.cancel()
+  }, [instanceId, debouncedSetBrightness, debouncedSetTemperature])
 
   const handleSliderChange = useCallback(
     (value: number[]) => {
@@ -173,15 +234,31 @@ export function DisplayStatus() {
     isDraggingRef.current = false
   }, [])
 
+  const handleTemperatureChange = useCallback(
+    (value: number[]) => {
+      isDraggingTemperatureRef.current = true
+      setLocalTemperature(value[0])
+      setTemperatureMutationError(null)
+      debouncedSetTemperature.debouncedFn(value[0])
+    },
+    [debouncedSetTemperature],
+  )
+
+  const handleTemperatureCommit = useCallback(() => {
+    isDraggingTemperatureRef.current = false
+  }, [])
+
   // Connection status derived from query state
   const isConnected = !brightnessQuery.isError && brightnessQuery.data !== undefined
   const isFetching = brightnessQuery.isFetching
   const isLoading = brightnessQuery.isLoading
   const hasBrightnessData = brightnessQuery.data != null
 
-  // Display value (local state takes precedence for responsiveness)
+  // Display values (local state takes precedence for responsiveness)
   // Show '---' when we don't have data yet to distinguish from actual 0 brightness
   const displayBrightness = localBrightness ?? brightnessQuery.data?.brightness
+  const displayTemperature = localTemperature ?? temperatureQuery.data?.temperature
+  const hasTemperatureData = temperatureQuery.data != null
 
   // Format dimensions display
   const dimensionsText = configQuery.data
@@ -236,12 +313,52 @@ export function DisplayStatus() {
           {mutationError && <p className="text-sm text-destructive">{mutationError}</p>}
         </div>
 
+        {/* Color Temperature */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <Label className="text-muted-foreground">Color Temperature</Label>
+            <div className="flex items-center gap-2">
+              {temperatureMutation.isPending && (
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+              )}
+              <span className="text-sm tabular-nums">
+                {displayTemperature != null ? `${displayTemperature} K` : '---'}
+              </span>
+            </div>
+          </div>
+          <Slider
+            value={[displayTemperature ?? 2000]}
+            min={2000}
+            max={6500}
+            step={100}
+            aria-label="Color Temperature"
+            onValueChange={handleTemperatureChange}
+            onValueCommit={handleTemperatureCommit}
+            disabled={
+              !selectedInstance ||
+              temperatureQuery.isLoading ||
+              temperatureQuery.isError ||
+              !hasTemperatureData
+            }
+          />
+          {temperatureMutationError && (
+            <p className="text-sm text-destructive">{temperatureMutationError}</p>
+          )}
+        </div>
+
         {/* Error display */}
         {brightnessQuery.isError && (
           <p className="text-sm text-destructive">
             {brightnessQuery.error instanceof Error
               ? brightnessQuery.error.message
               : 'Failed to connect to display'}
+          </p>
+        )}
+        {temperatureQuery.isError && (
+          <p className="text-sm text-destructive">
+            {temperatureQuery.error instanceof Error
+              ? temperatureQuery.error.message
+              : 'Failed to fetch temperature'}
           </p>
         )}
       </CardContent>
