@@ -18,6 +18,8 @@ global.ResizeObserver = ResizeObserverMock
 vi.mock('@/lib/api', () => ({
   getBrightness: vi.fn(),
   setBrightness: vi.fn(),
+  getTemperature: vi.fn(),
+  setTemperature: vi.fn(),
   getConfiguration: vi.fn(),
 }))
 
@@ -75,6 +77,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockImplementation(() => new Promise(() => {}))
+      vi.mocked(apiModule.getTemperature).mockImplementation(() => new Promise(() => {}))
       vi.mocked(apiModule.getConfiguration).mockImplementation(() => new Promise(() => {}))
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -96,8 +99,9 @@ describe('DisplayStatus', () => {
 
       expect(screen.getByText('Display Dimensions')).toBeDefined()
       expect(screen.getByText('Brightness')).toBeDefined()
-      // Both dimensions and brightness show '---' when no data
-      expect(screen.getAllByText('---')).toHaveLength(2)
+      expect(screen.getByText('Color Temperature')).toBeDefined()
+      // Dimensions, brightness, and temperature show '---' when no data
+      expect(screen.getAllByText('---')).toHaveLength(3)
     })
 
     it('shows dimensions when configuration is loaded', async () => {
@@ -109,6 +113,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -129,6 +134,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockImplementation(() => new Promise(() => {}))
+      vi.mocked(apiModule.getTemperature).mockImplementation(() => new Promise(() => {}))
       vi.mocked(apiModule.getConfiguration).mockImplementation(() => new Promise(() => {}))
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -147,6 +153,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -167,6 +174,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockRejectedValue(new Error('Connection refused'))
+      vi.mocked(apiModule.getTemperature).mockRejectedValue(new Error('Connection refused'))
       vi.mocked(apiModule.getConfiguration).mockRejectedValue(new Error('Connection refused'))
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -189,6 +197,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 200 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -221,6 +230,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockImplementation(() => new Promise(() => {}))
+      vi.mocked(apiModule.getTemperature).mockImplementation(() => new Promise(() => {}))
       vi.mocked(apiModule.getConfiguration).mockImplementation(() => new Promise(() => {}))
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -238,6 +248,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
       vi.mocked(apiModule.setBrightness).mockResolvedValue(undefined)
 
@@ -264,6 +275,102 @@ describe('DisplayStatus', () => {
     })
   })
 
+  describe('temperature control', () => {
+    it('displays current temperature value with K suffix', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
+      vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      await waitFor(() => {
+        expect(screen.getByText('4000 K')).toBeDefined()
+      })
+    })
+
+    it('disables temperature slider when no instance selected', () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: null })
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      const sliders = document.querySelectorAll('[data-disabled]')
+      // Both brightness and temperature sliders should be disabled
+      expect(sliders.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('updates displayed temperature value when slider is interacted with', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
+      vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
+      vi.mocked(apiModule.setTemperature).mockResolvedValue(undefined)
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      // Wait for initial load and verify initial value
+      await waitFor(() => {
+        expect(screen.getByText('4000 K')).toBeDefined()
+      })
+
+      // Find the temperature slider (second slider with role="slider")
+      const sliderThumbs = document.querySelectorAll('[role="slider"]')
+      const temperatureThumb = sliderThumbs[1]
+      expect(temperatureThumb).toBeTruthy()
+
+      // Simulate slider change via keyboard
+      if (temperatureThumb) {
+        fireEvent.keyDown(temperatureThumb, { key: 'ArrowRight' })
+      }
+
+      // Verify that the displayed value changed (step is 100)
+      await waitFor(() => {
+        expect(screen.getByText('4100 K')).toBeDefined()
+      })
+    })
+
+    it('calls getTemperature with correct endpoint URL', async () => {
+      ;(useInstances as Mock).mockReturnValue({
+        data: mockInstances,
+        isLoading: false,
+        error: null,
+      })
+      useInstancesStore.setState({ selectedId: '1' })
+
+      vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
+      vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
+
+      render(<DisplayStatus />, { wrapper: createWrapper() })
+
+      await waitFor(
+        () => {
+          expect(apiModule.getTemperature).toHaveBeenCalledWith({
+            data: { endpointUrl: 'http://localhost:4200' },
+          })
+        },
+        { timeout: 2000 },
+      )
+    })
+  })
+
   describe('error handling', () => {
     it('shows error message when brightness fetch fails', async () => {
       ;(useInstances as Mock).mockReturnValue({
@@ -276,6 +383,7 @@ describe('DisplayStatus', () => {
       vi.mocked(apiModule.getBrightness).mockRejectedValue(
         new Error('Failed to get brightness: timeout'),
       )
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -297,6 +405,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockRejectedValue('string error')
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -320,6 +429,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -343,6 +453,7 @@ describe('DisplayStatus', () => {
       useInstancesStore.setState({ selectedId: '1' })
 
       vi.mocked(apiModule.getBrightness).mockResolvedValue({ brightness: 128 })
+      vi.mocked(apiModule.getTemperature).mockResolvedValue({ temperature: 4000 })
       vi.mocked(apiModule.getConfiguration).mockResolvedValue({ width: 64, height: 32 })
 
       render(<DisplayStatus />, { wrapper: createWrapper() })
@@ -368,6 +479,7 @@ describe('DisplayStatus', () => {
       render(<DisplayStatus />, { wrapper: createWrapper() })
 
       expect(apiModule.getBrightness).not.toHaveBeenCalled()
+      expect(apiModule.getTemperature).not.toHaveBeenCalled()
       expect(apiModule.getConfiguration).not.toHaveBeenCalled()
     })
   })
