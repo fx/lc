@@ -1,4 +1,6 @@
+// biome-ignore lint/correctness/noNodejsModules: build config runs in Node.js
 import { readFileSync } from 'node:fs'
+// biome-ignore lint/correctness/noNodejsModules: build config runs in Node.js
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
