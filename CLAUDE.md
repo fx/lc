@@ -45,6 +45,17 @@ TanStack Start uses Vite which bundles client and server code separately. **Neve
 - `src/db/*` (schema, connection)
 - Any module using Node.js APIs (`Buffer`, `fs`, `crypto`, etc.)
 
+**NEVER use Node.js APIs in client code:** `Buffer`, `crypto` (Node module), `fs`, `path`, `process`, `child_process`, `os`, `stream`, `util.promisify`, `__dirname`, `__filename`. These do not exist in the browser and will cause runtime errors.
+
+**Browser `crypto` is limited:** `crypto.randomUUID()` requires HTTPS (secure context) and is unavailable during SSR. For temporary/optimistic IDs, use `Math.random().toString(36).substring(2) + Date.now().toString(36)` instead.
+
+**Import rules:**
+- Client code (`src/hooks/`, `src/components/`, `src/routes/`) may import server functions from `src/server/*.ts` (TanStack Start handles RPC)
+- Client code must NEVER import from `src/db/*` directly
+- Client code must NEVER import modules that transitively pull in Node.js APIs
+
+**Type-only imports are safe:** `import type { Instance } from '@/db/schema'` is fine — types are erased at compile time and do not affect the client bundle.
+
 **Safe patterns:**
 - Server functions in `src/server/*.ts` use `createServerFn` from `@tanstack/react-start`
 - Client components import server functions directly (TanStack Start handles the RPC boundary)

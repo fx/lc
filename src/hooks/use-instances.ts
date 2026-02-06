@@ -69,7 +69,7 @@ export function useCreateInstance() {
 
       // Optimistically add the new instance with a temporary ID
       const optimisticInstance: Instance = {
-        id: crypto.randomUUID(),
+        id: Math.random().toString(36).substring(2) + Date.now().toString(36),
         name: newInstance.name,
         endpointUrl: newInstance.endpointUrl,
         createdAt: new Date(),

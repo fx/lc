@@ -4,6 +4,12 @@ A web application to control LED matrix displays via the led-matrix-zmq-http-bri
 
 ## Tasks
 
+- [x] Fix: Client/Server Boundary Bleed (PR #17)
+  - [x] Replace `crypto.randomUUID()` with browser-safe ID in optimistic updates
+  - [x] Add Biome `noNodejsModules` lint rule to catch Node.js API usage in client code
+  - [x] Strengthen CLAUDE.md client/server separation guidance
+  - [x] Add client/server boundary review rules to Copilot instructions
+
 - [x] Feature: Color Temperature Control (PR #16)
   - [x] Add `getTemperature` and `setTemperature` server functions in `src/lib/api.ts`
   - [x] Add temperature slider (2000-6500K, step 100) to DisplayStatus component
