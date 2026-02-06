@@ -14,12 +14,25 @@ interface SetBrightnessInput {
   transition?: number
 }
 
+interface TemperatureInput {
+  endpointUrl: string
+}
+
+interface SetTemperatureInput {
+  endpointUrl: string
+  temperature: number
+}
+
 interface ConfigurationInput {
   endpointUrl: string
 }
 
 interface BrightnessResponse {
   brightness: number
+}
+
+interface TemperatureResponse {
+  temperature: number
 }
 
 interface ConfigurationResponse {
@@ -86,6 +99,72 @@ export const setBrightness = createServerFn({ method: 'POST' })
     if (!response.ok) {
       throw new Error(
         `Failed to set brightness: ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
+      )
+    }
+  })
+
+/**
+ * Server function to get the current color temperature from the LED matrix display.
+ */
+export const getTemperature = createServerFn({ method: 'GET' })
+  .inputValidator((input: TemperatureInput) => {
+    const validation = validateEndpointUrl(input.endpointUrl)
+    if (!validation.valid) {
+      throw new Error(`Invalid endpoint URL: ${validation.error}`)
+    }
+    return input
+  })
+  .handler(async ({ data }): Promise<TemperatureResponse> => {
+    const baseUrl = data.endpointUrl.replace(/\/+$/, '')
+
+    const response = await fetch(`${baseUrl}/temperature`, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to get temperature: ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
+      )
+    }
+
+    return response.json() as Promise<TemperatureResponse>
+  })
+
+/**
+ * Server function to set the color temperature on the LED matrix display.
+ */
+export const setTemperature = createServerFn({ method: 'POST' })
+  .inputValidator((input: SetTemperatureInput) => {
+    const validation = validateEndpointUrl(input.endpointUrl)
+    if (!validation.valid) {
+      throw new Error(`Invalid endpoint URL: ${validation.error}`)
+    }
+
+    if (
+      typeof input.temperature !== 'number' ||
+      input.temperature < 2000 ||
+      input.temperature > 6500
+    ) {
+      throw new Error('Temperature must be a number between 2000 and 6500')
+    }
+
+    return input
+  })
+  .handler(async ({ data }): Promise<void> => {
+    const baseUrl = data.endpointUrl.replace(/\/+$/, '')
+
+    const response = await fetch(`${baseUrl}/temperature`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        temperature: data.temperature,
+      }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to set temperature: ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`,
       )
     }
   })
