@@ -45,6 +45,7 @@ export async function storeImageCore(
   mimeType: string,
   originalUrl?: string,
 ): Promise<Result<StoreImageResult>> {
+  // biome-ignore lint/correctness/noNodejsModules: server-side function
   const { createHash } = await import('node:crypto')
   const { eq } = await import('drizzle-orm')
   const { db, withRetry } = await import('@/db')
